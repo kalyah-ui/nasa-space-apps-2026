@@ -321,6 +321,291 @@ h1 {
   line-height: 1.5;
 }
 
+/* ---- Discovery browser ------------------------------------------------- */
+
+.discovery-browser {
+  display: grid;
+  margin-top: var(--farmish-space-6);
+  gap: var(--farmish-space-5);
+  grid-template-columns: minmax(330px, 410px) minmax(0, 1fr);
+}
+
+.discovery-listings {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--farmish-space-4);
+}
+
+.discovery-listings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--farmish-space-3);
+}
+
+.discovery-count {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  gap: var(--farmish-space-2);
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
+  font-size: 13px;
+}
+
+.marker-mode-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-control);
+}
+
+.marker-mode-toggle button {
+  padding: 6px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--farmish-muted);
+  cursor: pointer;
+  font-family: var(--farmish-font-sans);
+  font-size: 12px;
+  transition:
+    background-color var(--farmish-duration) var(--farmish-ease),
+    color var(--farmish-duration) var(--farmish-ease);
+}
+
+.marker-mode-toggle button.is-active {
+  background: var(--farmish-accent-soft);
+  color: var(--farmish-accent);
+  font-weight: 650;
+}
+
+.marker-mode-toggle button:focus-visible {
+  outline: 2px solid var(--farmish-accent);
+  outline-offset: -2px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--farmish-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge--estimate {
+  border-color: var(--farmish-border);
+  color: var(--farmish-muted);
+}
+
+.badge--demo {
+  border-color: var(--farmish-accent-soft);
+  background: var(--farmish-accent-soft);
+  color: var(--farmish-accent);
+}
+
+.listing-card {
+  display: block;
+  width: 100%;
+  padding: var(--farmish-space-4);
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-panel);
+  background: var(--farmish-panel);
+  color: var(--farmish-ink);
+  cursor: pointer;
+  font-family: var(--farmish-font-sans);
+  text-align: left;
+  transition:
+    background-color var(--farmish-duration) var(--farmish-ease),
+    border-color var(--farmish-duration) var(--farmish-ease),
+    box-shadow var(--farmish-duration) var(--farmish-ease);
+}
+
+.listing-card:hover,
+.listing-card.is-highlighted {
+  border-color: var(--farmish-accent);
+  background: var(--farmish-raised);
+}
+
+.listing-card.is-selected {
+  border-color: var(--farmish-accent);
+  box-shadow: 0 0 0 1px var(--farmish-accent);
+}
+
+.listing-card:focus-visible {
+  outline: 2px solid var(--farmish-accent);
+  outline-offset: 2px;
+}
+
+.listing-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--farmish-space-2);
+}
+
+.listing-card-name {
+  font-family: var(--farmish-font-serif);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.listing-card-price {
+  display: block;
+  margin-top: var(--farmish-space-2);
+  color: var(--farmish-accent);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.listing-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--farmish-space-2);
+  gap: 6px;
+  color: var(--farmish-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.listing-card-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.listing-card-description {
+  display: block;
+  margin-top: var(--farmish-space-2);
+  color: var(--farmish-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.discovery-map-area {
+  position: sticky;
+  top: var(--farmish-space-5);
+  height: calc(100vh - 48px);
+  min-height: 420px;
+}
+
+.discovery-map {
+  /* The schematic map stays dark in BOTH themes, like the field workspace. */
+  color-scheme: dark;
+  --farmish-ink: #edf2e8;
+  --farmish-muted: #a4b09f;
+  --farmish-border: #344238;
+  --farmish-accent: #b6d681;
+  --farmish-accent-ink: #15200f;
+  --farmish-accent-soft: rgb(182 214 129 / 10%);
+
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-panel);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 46%, transparent 55%, rgb(0 0 0 / 30%) 100%),
+    radial-gradient(ellipse 58% 44% at 68% 30%, rgb(94 125 80 / 22%), transparent 62%),
+    radial-gradient(ellipse 48% 42% at 26% 70%, rgb(66 94 60 / 19%), transparent 66%),
+    linear-gradient(
+      107deg,
+      transparent 0 41.6%,
+      rgb(58 76 52 / 26%) 41.6% 42%,
+      transparent 42% 70.7%,
+      rgb(58 76 52 / 26%) 70.7% 71.1%,
+      transparent 71.1%
+    ),
+    repeating-linear-gradient(25deg, rgb(237 242 232 / 2%) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(-65deg, rgb(237 242 232 / 1.6%) 0 1px, transparent 1px 122px),
+    #141b15;
+}
+
+.discovery-map-pill {
+  position: absolute;
+  z-index: 1;
+  padding: 5px 10px;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: 999px;
+  background: var(--glass-tint-strong);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-soft);
+  color: var(--farmish-ink);
+  cursor: pointer;
+  font-family: var(--farmish-font-sans);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  backdrop-filter: blur(var(--glass-blur-sm)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-sm)) saturate(130%);
+  transform: translate(-50%, -50%);
+  transition:
+    background-color var(--farmish-duration) var(--farmish-ease),
+    border-color var(--farmish-duration) var(--farmish-ease),
+    color var(--farmish-duration) var(--farmish-ease),
+    transform var(--farmish-duration) var(--farmish-ease);
+}
+
+.discovery-map-pill:hover,
+.discovery-map-pill.is-highlighted {
+  z-index: 2;
+  border-color: var(--farmish-accent);
+  color: var(--farmish-accent);
+  transform: translate(-50%, -50%) scale(1.09);
+}
+
+.discovery-map-pill.is-selected {
+  z-index: 2;
+  border-color: var(--farmish-accent);
+  background: var(--farmish-accent);
+  color: var(--farmish-accent-ink);
+}
+
+.discovery-map-pill:focus-visible {
+  outline: 2px solid var(--farmish-accent);
+  outline-offset: 2px;
+}
+
+.discovery-map-note {
+  position: absolute;
+  bottom: var(--farmish-space-3);
+  left: var(--farmish-space-3);
+  margin: 0;
+  padding: 4px 9px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-tint-strong);
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .discovery-browser {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-map-area {
+    position: static;
+    order: -1;
+    height: 340px;
+    min-height: 0;
+  }
+}
+
 .field-workspace {
   /* The map workspace keeps the dark palette in BOTH themes, so the root
      tokens are re-pinned to dark literals here. */

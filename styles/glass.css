@@ -45,8 +45,10 @@
   --glass-opaque: rgb(250 252 246 / 97%);
 }
 
-/* The field workspace keeps dark glass in BOTH themes (the map stays dark). */
-.field-workspace {
+/* The field workspace and the Discovery map keep dark glass in BOTH themes
+   (anything map-like stays dark). */
+.field-workspace,
+.discovery-map {
   --glass-tint: rgb(21 30 24 / 60%);
   --glass-tint-strong: rgb(21 30 24 / 80%);
   --glass-tint-hover: rgb(34 46 37 / 68%);
