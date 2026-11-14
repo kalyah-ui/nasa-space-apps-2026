@@ -134,7 +134,7 @@ Datasets:
 
 # Team Structure
 
-## Member 1
+## Arabella
 ### Data Acquisition Lead
 
 Responsibilities:
@@ -152,7 +152,7 @@ Owns:
 
 ---
 
-## Member 2
+## Salma
 ### Frontend Lead
 
 Responsibilities:
@@ -170,7 +170,7 @@ Owns:
 
 ---
 
-## Member 3
+## Armeena
 ### GIS & Mapping Lead
 
 Responsibilities:
@@ -187,7 +187,7 @@ Owns:
 
 ---
 
-## Member 4
+## Kalyah
 ### Scoring & Recommendation Lead
 
 Responsibilities:
@@ -204,7 +204,7 @@ Owns:
 
 ---
 
-## Member 5
+## Safeyyah
 ### Visualization Lead
 
 Responsibilities:
@@ -220,7 +220,7 @@ Owns:
 
 ---
 
-## Member 6
+## Lana
 ### Storytelling & Demo Lead
 
 Responsibilities:
