@@ -3,7 +3,7 @@ import { SectionPlaceholder } from "@/components/ui/section-placeholder";
 
 export default function RotationPlannerPage() {
   return (
-    <SiteShell currentPath="/rotation-planner">
+    <SiteShell>
       <p className="eyebrow">Compare strategies</p>
       <h1>Rotation Planner</h1>
       <p className="intro">Compare crop rotation options across water use, soil impact, resilience, and market viability.</p>

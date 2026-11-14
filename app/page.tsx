@@ -10,7 +10,7 @@ const workflows = [
 
 export default function HomePage() {
   return (
-    <SiteShell currentPath="/">
+    <SiteShell>
       <p className="eyebrow">Land intelligence for a changing climate</p>
       <h1>Make the next farm decision with more context.</h1>
       <p className="intro">
