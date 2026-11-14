@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fieldDataProvider } from "./data/provider-config";
 import type { FieldSpec, LayerId, LayerSpec } from "./data/types";
+import { FieldMap } from "./field-map";
 import { LayerSidebar } from "./layer-sidebar";
 import { WorkspaceHeader } from "./workspace-header";
 
@@ -55,17 +56,7 @@ export function FieldWorkspace() {
           selectedLayerId={selectedLayerId}
         />
 
-        <section aria-label="Field map" className="field-workspace-map">
-          <div className="field-workspace-map-placeholder">
-            <span aria-hidden="true" className="field-workspace-map-mark">F</span>
-            <p className="field-workspace-overline">Map workspace</p>
-            <h2>Field map coming next</h2>
-            <p>
-              {layers.find((layer) => layer.id === selectedLayerId)?.label ?? "Productivity map"} selected.
-              Map rendering is part of the GIS integration step.
-            </p>
-          </div>
-        </section>
+        <FieldMap />
       </div>
     </main>
   );
