@@ -1,12 +1,56 @@
 :root {
+  color-scheme: dark;
+
+  /* Palette — single dark theme, lime is the only accent. */
+  --farmish-ink: #edf2e8;
+  --farmish-muted: #a4b09f;
+  --farmish-bg: #111813;
+  --farmish-panel: #19221c;
+  --farmish-raised: #202b23;
+  --farmish-border: #344238;
+  --farmish-accent: #b6d681;
+  --farmish-accent-ink: #15200f;
+  --farmish-accent-soft: rgb(182 214 129 / 10%);
+  --farmish-surface-soft: rgb(25 34 28 / 55%);
+  --farmish-danger-border: #8e514b;
+  --farmish-danger-ink: #f0b5ac;
+
+  /* Typography */
+  --farmish-font-serif: Georgia, "Times New Roman", serif;
+  --farmish-font-sans: Arial, "Helvetica Neue", sans-serif;
+
+  /* Shape — one radius for panels, a smaller one for controls/chips. */
+  --farmish-radius-panel: 14px;
+  --farmish-radius-control: 8px;
+
+  /* Spacing scale (4px base) */
+  --farmish-space-1: 4px;
+  --farmish-space-2: 8px;
+  --farmish-space-3: 12px;
+  --farmish-space-4: 16px;
+  --farmish-space-5: 24px;
+  --farmish-space-6: 32px;
+
+  /* Motion */
+  --farmish-duration: 200ms;
+  --farmish-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Light theme — same token names, accent darkened to hold ≥4.5:1 contrast. */
+:root[data-theme="light"] {
   color-scheme: light;
-  --farmish-page-ink: #1d2921;
-  --farmish-page-muted: #647064;
-  --farmish-page-paper: #f5f6ef;
-  --farmish-page-surface: #ffffff;
-  --farmish-page-green: #245c3b;
-  --farmish-page-line: #dce2d8;
-  --farmish-page-accent: #d5e66e;
+  --farmish-ink: #1d2921;
+  --farmish-muted: #5a665b;
+  --farmish-bg: #f2f4ec;
+  --farmish-panel: #fafcf5;
+  --farmish-raised: #e8ecdf;
+  --farmish-border: #d3dacb;
+  --farmish-accent: #4a7324;
+  --farmish-accent-ink: #f5f9ec;
+  --farmish-accent-soft: rgb(74 115 36 / 12%);
+  --farmish-surface-soft: rgb(255 255 255 / 60%);
+  --farmish-danger-border: #c2574c;
+  --farmish-danger-ink: #8e2f26;
 }
 
 * {
@@ -15,9 +59,9 @@
 
 body {
   margin: 0;
-  background: var(--farmish-page-paper);
-  color: var(--farmish-page-ink);
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--farmish-bg);
+  color: var(--farmish-ink);
+  font-family: var(--farmish-font-serif);
 }
 
 a {
@@ -35,13 +79,13 @@ a {
   flex-direction: column;
   gap: 32px;
   padding: 28px 20px;
-  border-right: 1px solid var(--farmish-page-line);
-  background: #edf0e7;
+  border-right: 1px solid var(--farmish-border);
+  background: var(--farmish-panel);
 }
 
 .brand {
   margin: 0;
-  color: var(--farmish-page-green);
+  color: var(--farmish-accent);
   font-size: 24px;
   font-weight: 700;
 }
@@ -49,8 +93,8 @@ a {
 .brand-note,
 .eyebrow,
 .nav-label {
-  color: var(--farmish-page-muted);
-  font-family: Arial, sans-serif;
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
   font-size: 12px;
 }
 
@@ -70,16 +114,63 @@ a {
 
 .navigation a {
   padding: 10px 12px;
-  border-radius: 4px;
-  font-family: Arial, sans-serif;
+  border-radius: var(--farmish-radius-control);
+  font-family: var(--farmish-font-sans);
   font-size: 14px;
   text-decoration: none;
+  transition:
+    background-color var(--farmish-duration) var(--farmish-ease),
+    color var(--farmish-duration) var(--farmish-ease);
 }
 
 .navigation a:hover,
 .navigation a[aria-current="page"] {
-  background: #dfe7d8;
-  color: var(--farmish-page-green);
+  background: var(--farmish-accent-soft);
+  color: var(--farmish-accent);
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--farmish-space-3);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-control);
+  background: transparent;
+  color: var(--farmish-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--farmish-duration) var(--farmish-ease),
+    border-color var(--farmish-duration) var(--farmish-ease),
+    color var(--farmish-duration) var(--farmish-ease);
+}
+
+.theme-toggle:hover {
+  border-color: var(--farmish-accent);
+  background: var(--farmish-accent-soft);
+  color: var(--farmish-accent);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--farmish-accent);
+  outline-offset: 2px;
+}
+
+:root[data-theme="light"] .theme-toggle-sun {
+  display: none;
+}
+
+:root:not([data-theme="light"]) .theme-toggle-moon {
+  display: none;
 }
 
 .main-content {
@@ -101,15 +192,15 @@ h1 {
 .intro {
   max-width: 680px;
   margin: 14px 0 32px;
-  color: var(--farmish-page-muted);
-  font-family: Arial, sans-serif;
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
   font-size: 16px;
   line-height: 1.6;
 }
 
 .workflow-list {
   display: grid;
-  border-top: 1px solid var(--farmish-page-line);
+  border-top: 1px solid var(--farmish-border);
 }
 
 .workflow-link {
@@ -118,12 +209,16 @@ h1 {
   justify-content: space-between;
   gap: 20px;
   padding: 20px 4px;
-  border-bottom: 1px solid var(--farmish-page-line);
+  border-bottom: 1px solid var(--farmish-border);
   text-decoration: none;
 }
 
+.workflow-link .workflow-title {
+  transition: color var(--farmish-duration) var(--farmish-ease);
+}
+
 .workflow-link:hover .workflow-title {
-  color: var(--farmish-page-green);
+  color: var(--farmish-accent);
 }
 
 .workflow-title {
@@ -133,22 +228,23 @@ h1 {
 
 .workflow-description {
   margin: 5px 0 0;
-  color: var(--farmish-page-muted);
-  font-family: Arial, sans-serif;
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
   font-size: 14px;
 }
 
 .workflow-arrow {
-  color: var(--farmish-page-green);
-  font-family: Arial, sans-serif;
+  color: var(--farmish-accent);
+  font-family: var(--farmish-font-sans);
   font-size: 20px;
 }
 
 .placeholder {
   margin-top: 30px;
   padding: 24px;
-  border: 1px dashed #aab8a7;
-  background: rgb(255 255 255 / 55%);
+  border: 1px dashed var(--farmish-border);
+  border-radius: var(--farmish-radius-panel);
+  background: var(--farmish-surface-soft);
 }
 
 .placeholder h2 {
@@ -159,21 +255,37 @@ h1 {
 
 .placeholder p {
   margin: 0;
-  color: var(--farmish-page-muted);
-  font-family: Arial, sans-serif;
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
   font-size: 14px;
   line-height: 1.5;
 }
 
 .field-workspace {
+  /* The map workspace keeps the dark palette in BOTH themes, so the root
+     tokens are re-pinned to dark literals here. */
   color-scheme: dark;
-  --farmish-map-background: #111813;
-  --farmish-map-panel: #19221c;
-  --farmish-map-raised: #202b23;
-  --farmish-map-border: #344238;
-  --farmish-map-text: #edf2e8;
-  --farmish-map-muted: #a4b09f;
-  --farmish-map-accent: #b6d681;
+  --farmish-ink: #edf2e8;
+  --farmish-muted: #a4b09f;
+  --farmish-bg: #111813;
+  --farmish-panel: #19221c;
+  --farmish-raised: #202b23;
+  --farmish-border: #344238;
+  --farmish-accent: #b6d681;
+  --farmish-accent-ink: #15200f;
+  --farmish-accent-soft: rgb(182 214 129 / 10%);
+  --farmish-surface-soft: rgb(25 34 28 / 55%);
+  --farmish-danger-border: #8e514b;
+  --farmish-danger-ink: #f0b5ac;
+
+  /* Local aliases kept so existing workspace rules keep working. */
+  --farmish-map-background: var(--farmish-bg);
+  --farmish-map-panel: var(--farmish-panel);
+  --farmish-map-raised: var(--farmish-raised);
+  --farmish-map-border: var(--farmish-border);
+  --farmish-map-text: var(--farmish-ink);
+  --farmish-map-muted: var(--farmish-muted);
+  --farmish-map-accent: var(--farmish-accent);
 
   display: flex;
   min-height: 100vh;
@@ -257,6 +369,12 @@ h1 {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   vertical-align: 1px;
+}
+
+.field-workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .field-workspace-close {
@@ -546,10 +664,10 @@ h1 {
 
 .field-workspace-data-error {
   padding: 10px;
-  border: 1px solid #8e514b;
-  border-radius: 6px;
+  border: 1px solid var(--farmish-danger-border);
+  border-radius: var(--farmish-radius-control);
   background: rgb(142 81 75 / 14%);
-  color: #f0b5ac;
+  color: var(--farmish-danger-ink);
 }
 
 .field-workspace-overline {
@@ -577,18 +695,42 @@ h1 {
   min-height: 460px;
   place-items: center;
   padding: 32px;
+
+  /* Dark satellite-style stand-in backdrop until the real map lands:
+     night-field glows, parcel seams, and faint survey lines, all CSS. */
   background:
-    radial-gradient(ellipse at 68% 32%, rgb(91 119 78 / 24%), transparent 34%),
-    radial-gradient(ellipse at 32% 76%, rgb(70 91 61 / 20%), transparent 38%),
-    #172019;
+    radial-gradient(ellipse 70% 60% at 50% 46%, transparent 55%, rgb(0 0 0 / 30%) 100%),
+    radial-gradient(ellipse 58% 44% at 71% 26%, rgb(94 125 80 / 22%), transparent 62%),
+    radial-gradient(ellipse 48% 42% at 24% 74%, rgb(66 94 60 / 19%), transparent 66%),
+    radial-gradient(ellipse 30% 26% at 46% 58%, rgb(118 140 96 / 10%), transparent 70%),
+    linear-gradient(
+      113deg,
+      transparent 0 37.6%,
+      rgb(58 76 52 / 26%) 37.6% 38%,
+      transparent 38% 61.7%,
+      rgb(58 76 52 / 26%) 61.7% 62.1%,
+      transparent 62.1%
+    ),
+    linear-gradient(
+      23deg,
+      transparent 0 54.8%,
+      rgb(52 66 56 / 30%) 54.8% 55.2%,
+      transparent 55.2%
+    ),
+    repeating-linear-gradient(25deg, rgb(237 242 232 / 2%) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(-65deg, rgb(237 242 232 / 1.6%) 0 1px, transparent 1px 122px),
+    #141b15;
 }
 
 .field-workspace-map-placeholder {
   max-width: 380px;
   padding: 28px;
-  border: 1px solid var(--farmish-map-border);
-  border-radius: 12px;
-  background: rgb(25 34 28 / 92%);
+  border: 1px solid var(--glass-border, var(--farmish-map-border));
+  border-radius: var(--farmish-radius-panel);
+  background: var(--glass-tint-strong, rgb(25 34 28 / 92%));
+  box-shadow: var(--glass-highlight, none), var(--glass-shadow-soft, none);
+  backdrop-filter: blur(var(--glass-blur-md, 18px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-md, 18px)) saturate(140%);
   text-align: center;
 }
 
@@ -623,7 +765,7 @@ h1 {
     gap: 18px;
     padding: 18px 20px;
     border-right: 0;
-    border-bottom: 1px solid var(--farmish-page-line);
+    border-bottom: 1px solid var(--farmish-border);
   }
 
   .navigation {
@@ -670,5 +812,16 @@ h1 {
   .field-workspace-map {
     min-height: 360px;
     padding: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

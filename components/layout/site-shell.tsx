@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const navigation = [
   { href: "/", label: "Overview" },
@@ -12,9 +13,12 @@ export function SiteShell({ children, currentPath }: { children: React.ReactNode
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div>
-          <p className="brand">Farmish</p>
-          <p className="brand-note">The dirt on your dirt.</p>
+        <div className="sidebar-top">
+          <div>
+            <p className="brand">Farmish</p>
+            <p className="brand-note">The dirt on your dirt.</p>
+          </div>
+          <ThemeToggle />
         </div>
         <nav aria-label="Main navigation" className="navigation">
           {navigation.map((item) => (

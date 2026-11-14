@@ -1,0 +1,186 @@
+/*
+ * Farmish liquid-glass layer.
+ *
+ * Reusable tokens and classes for translucent panels floating over the map.
+ * Rule of thumb: glass only on panels that sit above the map backdrop;
+ * dense text and tables stay on solid surfaces (globals.css palette).
+ */
+
+:root {
+  /* Blur steps */
+  --glass-blur-sm: 8px;
+  --glass-blur-md: 18px;
+  --glass-blur-lg: 28px;
+
+  /* Surface tints (green-black, see-through) */
+  --glass-tint: rgb(21 30 24 / 60%);
+  --glass-tint-strong: rgb(21 30 24 / 80%);
+  --glass-tint-hover: rgb(34 46 37 / 68%);
+  --glass-tint-active: rgb(28 39 31 / 74%);
+
+  /* Edges and light */
+  --glass-border: rgb(237 242 232 / 13%);
+  --glass-border-strong: rgb(237 242 232 / 24%);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 7%);
+  --glass-shadow: 0 12px 32px rgb(0 0 0 / 38%), 0 2px 8px rgb(0 0 0 / 26%);
+  --glass-shadow-soft: 0 6px 18px rgb(0 0 0 / 30%);
+  --glass-focus-ring: 0 0 0 3px rgb(182 214 129 / 22%);
+
+  /* Near-opaque stand-in where backdrop-filter is unsupported. */
+  --glass-opaque: rgb(23 32 26 / 97%);
+}
+
+/* Light theme — frosted white panels, same token names. */
+:root[data-theme="light"] {
+  --glass-tint: rgb(252 253 248 / 55%);
+  --glass-tint-strong: rgb(252 253 248 / 78%);
+  --glass-tint-hover: rgb(255 255 255 / 72%);
+  --glass-tint-active: rgb(243 246 238 / 78%);
+  --glass-border: rgb(29 41 33 / 12%);
+  --glass-border-strong: rgb(29 41 33 / 22%);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 75%);
+  --glass-shadow: 0 12px 32px rgb(29 41 33 / 14%), 0 2px 8px rgb(29 41 33 / 8%);
+  --glass-shadow-soft: 0 6px 18px rgb(29 41 33 / 10%);
+  --glass-focus-ring: 0 0 0 3px rgb(74 115 36 / 22%);
+  --glass-opaque: rgb(250 252 246 / 97%);
+}
+
+/* The field workspace keeps dark glass in BOTH themes (the map stays dark). */
+.field-workspace {
+  --glass-tint: rgb(21 30 24 / 60%);
+  --glass-tint-strong: rgb(21 30 24 / 80%);
+  --glass-tint-hover: rgb(34 46 37 / 68%);
+  --glass-tint-active: rgb(28 39 31 / 74%);
+  --glass-border: rgb(237 242 232 / 13%);
+  --glass-border-strong: rgb(237 242 232 / 24%);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 7%);
+  --glass-shadow: 0 12px 32px rgb(0 0 0 / 38%), 0 2px 8px rgb(0 0 0 / 26%);
+  --glass-shadow-soft: 0 6px 18px rgb(0 0 0 / 30%);
+  --glass-focus-ring: 0 0 0 3px rgb(182 214 129 / 22%);
+  --glass-opaque: rgb(23 32 26 / 97%);
+}
+
+/* --- Surfaces ----------------------------------------------------------- */
+
+.glass-panel {
+  position: relative;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--farmish-radius-panel);
+  background: var(--glass-tint);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur-md)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-md)) saturate(140%);
+}
+
+/* Denser variant for panels holding small text over busy backdrops. */
+.glass-panel--strong {
+  background: var(--glass-tint-strong);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-soft);
+}
+
+/* --- Interaction -------------------------------------------------------- */
+
+.glass-interactive {
+  cursor: pointer;
+  transition:
+    background-color var(--farmish-duration) var(--farmish-ease),
+    border-color var(--farmish-duration) var(--farmish-ease),
+    box-shadow var(--farmish-duration) var(--farmish-ease),
+    color var(--farmish-duration) var(--farmish-ease),
+    transform var(--farmish-duration) var(--farmish-ease);
+}
+
+.glass-interactive:hover {
+  border-color: var(--glass-border-strong);
+  background: var(--glass-tint-hover);
+  transform: translateY(-1px);
+}
+
+.glass-interactive:active {
+  background: var(--glass-tint-active);
+  transform: translateY(0);
+}
+
+.glass-interactive:focus-visible {
+  border-color: var(--farmish-accent);
+  box-shadow: var(--glass-highlight), var(--glass-focus-ring);
+  outline: 2px solid var(--farmish-accent);
+  outline-offset: 2px;
+}
+
+/* --- Small pieces ------------------------------------------------------- */
+
+.glass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--farmish-space-1);
+  padding: 3px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-tint);
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.glass-chip--accent {
+  border-color: rgb(182 214 129 / 28%);
+  background: rgb(182 214 129 / 9%);
+  color: var(--farmish-accent);
+}
+
+.glass-divider {
+  height: 1px;
+  border: 0;
+  margin: var(--farmish-space-3) 0;
+  background: linear-gradient(90deg, transparent, var(--glass-border-strong), transparent);
+}
+
+.glass-scroll {
+  scrollbar-color: var(--glass-border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+/* Large tight numerals for data readouts (KPI tiles, legend bounds). */
+.glass-numeral {
+  font-family: var(--farmish-font-sans);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* Small uppercase labels that sit above numerals and panel sections. */
+.glass-label {
+  color: var(--farmish-muted);
+  font-family: var(--farmish-font-sans);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.095em;
+  text-transform: uppercase;
+}
+
+/* --- Fallbacks ---------------------------------------------------------- */
+
+/* Browsers without backdrop-filter get a near-opaque surface so text
+   stays readable against whatever is behind the panel. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel,
+  .glass-panel--strong,
+  .glass-chip,
+  .field-workspace-map-placeholder {
+    background: var(--glass-opaque);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-interactive,
+  .glass-interactive:hover,
+  .glass-interactive:active {
+    transform: none;
+    transition: none;
+  }
+}
