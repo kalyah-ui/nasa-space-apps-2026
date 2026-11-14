@@ -3,7 +3,7 @@ import { SectionPlaceholder } from "@/components/ui/section-placeholder";
 
 export default function FutureFarmPage() {
   return (
-    <SiteShell currentPath="/future-farm">
+    <SiteShell>
       <p className="eyebrow">Plan for resilience</p>
       <h1>Future Farm</h1>
       <p className="intro">Explore how heat, water availability, and extreme rainfall may affect farm resilience over time.</p>

@@ -16,3 +16,5 @@ data/processed/**
 !data/nasa/.gitkeep
 !data/usda/.gitkeep
 !data/processed/.gitkeep
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AppNav } from "@/components/layout/app-nav";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { FieldSpec } from "./data/types";
 
 type WorkspaceHeaderProps = {
@@ -14,6 +16,7 @@ export function WorkspaceHeader({ field }: WorkspaceHeaderProps) {
         </Link>
         <span className="field-workspace-tagline">The dirt on your dirt.</span>
       </div>
+      <AppNav variant="compact" />
       <div className="field-workspace-field">
         <div>
           <h1>{field?.name ?? "Loading field..."}</h1>
@@ -26,10 +29,13 @@ export function WorkspaceHeader({ field }: WorkspaceHeaderProps) {
             ) : null}
           </p>
         </div>
-        <Link aria-label="Close field workspace" className="field-workspace-close" href="/">
-          <span aria-hidden="true">×</span>
-          Close
-        </Link>
+        <div className="field-workspace-actions">
+          <ThemeToggle />
+          <Link aria-label="Close field workspace" className="field-workspace-close" href="/">
+            <span aria-hidden="true">×</span>
+            Close
+          </Link>
+        </div>
       </div>
     </header>
   );
