@@ -1,12 +1,12 @@
 :root {
   color-scheme: light;
-  --ink: #1d2921;
-  --muted: #647064;
-  --paper: #f5f6ef;
-  --surface: #ffffff;
-  --green: #245c3b;
-  --line: #dce2d8;
-  --accent: #d5e66e;
+  --farmish-page-ink: #1d2921;
+  --farmish-page-muted: #647064;
+  --farmish-page-paper: #f5f6ef;
+  --farmish-page-surface: #ffffff;
+  --farmish-page-green: #245c3b;
+  --farmish-page-line: #dce2d8;
+  --farmish-page-accent: #d5e66e;
 }
 
 * {
@@ -15,8 +15,8 @@
 
 body {
   margin: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--farmish-page-paper);
+  color: var(--farmish-page-ink);
   font-family: Georgia, "Times New Roman", serif;
 }
 
@@ -35,13 +35,13 @@ a {
   flex-direction: column;
   gap: 32px;
   padding: 28px 20px;
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--farmish-page-line);
   background: #edf0e7;
 }
 
 .brand {
   margin: 0;
-  color: var(--green);
+  color: var(--farmish-page-green);
   font-size: 24px;
   font-weight: 700;
 }
@@ -49,7 +49,7 @@ a {
 .brand-note,
 .eyebrow,
 .nav-label {
-  color: var(--muted);
+  color: var(--farmish-page-muted);
   font-family: Arial, sans-serif;
   font-size: 12px;
 }
@@ -79,7 +79,7 @@ a {
 .navigation a:hover,
 .navigation a[aria-current="page"] {
   background: #dfe7d8;
-  color: var(--green);
+  color: var(--farmish-page-green);
 }
 
 .main-content {
@@ -101,7 +101,7 @@ h1 {
 .intro {
   max-width: 680px;
   margin: 14px 0 32px;
-  color: var(--muted);
+  color: var(--farmish-page-muted);
   font-family: Arial, sans-serif;
   font-size: 16px;
   line-height: 1.6;
@@ -109,7 +109,7 @@ h1 {
 
 .workflow-list {
   display: grid;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--farmish-page-line);
 }
 
 .workflow-link {
@@ -118,12 +118,12 @@ h1 {
   justify-content: space-between;
   gap: 20px;
   padding: 20px 4px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--farmish-page-line);
   text-decoration: none;
 }
 
 .workflow-link:hover .workflow-title {
-  color: var(--green);
+  color: var(--farmish-page-green);
 }
 
 .workflow-title {
@@ -133,13 +133,13 @@ h1 {
 
 .workflow-description {
   margin: 5px 0 0;
-  color: var(--muted);
+  color: var(--farmish-page-muted);
   font-family: Arial, sans-serif;
   font-size: 14px;
 }
 
 .workflow-arrow {
-  color: var(--green);
+  color: var(--farmish-page-green);
   font-family: Arial, sans-serif;
   font-size: 20px;
 }
@@ -159,10 +159,170 @@ h1 {
 
 .placeholder p {
   margin: 0;
-  color: var(--muted);
+  color: var(--farmish-page-muted);
   font-family: Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.field-workspace {
+  color-scheme: dark;
+  --farmish-map-background: #111813;
+  --farmish-map-panel: #19221c;
+  --farmish-map-border: #344238;
+  --farmish-map-text: #edf2e8;
+  --farmish-map-muted: #a4b09f;
+  --farmish-map-accent: #b6d681;
+
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--farmish-map-background);
+  color: var(--farmish-map-text);
+  font-family: Arial, sans-serif;
+}
+
+.field-workspace-header {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--farmish-map-border);
+  background: var(--farmish-map-panel);
+}
+
+.field-workspace-brand,
+.field-workspace-field,
+.field-workspace-close {
+  display: flex;
+  align-items: center;
+}
+
+.field-workspace-brand {
+  gap: 12px;
+}
+
+.field-workspace-brand-name {
+  color: var(--farmish-map-accent);
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.field-workspace-tagline,
+.field-workspace-field p,
+.field-workspace-description,
+.field-workspace-map-placeholder > p:last-child {
+  color: var(--farmish-map-muted);
+  font-size: 13px;
+}
+
+.field-workspace-field {
+  gap: 28px;
+}
+
+.field-workspace-field h1 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.field-workspace-field p {
+  margin: 4px 0 0;
+}
+
+.field-workspace-close {
+  min-height: 40px;
+  gap: 8px;
+  color: var(--farmish-map-text);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.field-workspace-close span {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.field-workspace-close:hover,
+.field-workspace-brand-name:hover {
+  color: var(--farmish-map-accent);
+}
+
+.field-workspace-body {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+}
+
+.field-workspace-sidebar {
+  padding: 28px 22px;
+  border-right: 1px solid var(--farmish-map-border);
+  background: var(--farmish-map-panel);
+}
+
+.field-workspace-overline {
+  margin: 0 0 10px;
+  color: var(--farmish-map-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.field-workspace-sidebar h2,
+.field-workspace-map-placeholder h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.field-workspace-description {
+  line-height: 1.55;
+}
+
+.field-workspace-map {
+  display: grid;
+  min-height: 460px;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(ellipse at 68% 32%, rgb(91 119 78 / 24%), transparent 34%),
+    radial-gradient(ellipse at 32% 76%, rgb(70 91 61 / 20%), transparent 38%),
+    #172019;
+}
+
+.field-workspace-map-placeholder {
+  max-width: 380px;
+  padding: 28px;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 12px;
+  background: rgb(25 34 28 / 92%);
+  text-align: center;
+}
+
+.field-workspace-map-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 20px;
+  place-items: center;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 50%;
+  color: var(--farmish-map-accent);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.field-workspace-map-placeholder .field-workspace-overline {
+  margin-bottom: 8px;
+}
+
+.field-workspace-map-placeholder > p:last-child {
+  margin: 10px 0 0;
+  line-height: 1.55;
 }
 
 @media (max-width: 700px) {
@@ -174,7 +334,7 @@ h1 {
     gap: 18px;
     padding: 18px 20px;
     border-right: 0;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--farmish-page-line);
   }
 
   .navigation {
@@ -183,5 +343,27 @@ h1 {
 
   .main-content {
     padding: 32px 20px;
+  }
+
+  .field-workspace-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+    padding: 16px 18px;
+  }
+
+  .field-workspace-body {
+    grid-template-columns: 1fr;
+  }
+
+  .field-workspace-sidebar {
+    padding: 20px 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--farmish-map-border);
+  }
+
+  .field-workspace-map {
+    min-height: 360px;
+    padding: 20px;
   }
 }

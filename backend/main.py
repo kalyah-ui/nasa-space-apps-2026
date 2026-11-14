@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 app = FastAPI(
-    title="FarmScope AI API",
+    title="Farmish API",
     description="Environmental and agricultural insights for farm planning.",
     version="0.1.0",
 )

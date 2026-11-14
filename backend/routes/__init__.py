@@ -1,1 +1,1 @@
-"""HTTP route modules for the FarmScope API."""
+"""HTTP route modules for the Farmish API."""

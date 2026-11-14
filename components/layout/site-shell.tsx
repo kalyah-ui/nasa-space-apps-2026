@@ -13,8 +13,8 @@ export function SiteShell({ children, currentPath }: { children: React.ReactNode
     <div className="app-shell">
       <aside className="sidebar">
         <div>
-          <p className="brand">FarmScope AI</p>
-          <p className="brand-note">From buying land to building a resilient farm</p>
+          <p className="brand">Farmish</p>
+          <p className="brand-note">The dirt on your dirt.</p>
         </div>
         <nav aria-label="Main navigation" className="navigation">
           {navigation.map((item) => (

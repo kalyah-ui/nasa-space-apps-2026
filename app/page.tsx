@@ -16,7 +16,7 @@ export default function HomePage() {
       <p className="intro">
         Explore environmental signals and agricultural data to understand what a parcel can support today and over time.
       </p>
-      <div aria-label="FarmScope workflows" className="workflow-list">
+      <div aria-label="Farmish workflows" className="workflow-list">
         {workflows.map((workflow) => (
           <Link className="workflow-link" href={workflow.href} key={workflow.href}>
             <div>

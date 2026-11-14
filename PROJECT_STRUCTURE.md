@@ -1,5 +1,5 @@
-# FarmScope AI
-### From Buying Land to Building a Resilient Farm
+# Farmish
+### The dirt on your dirt.
 
 NASA Space Apps Challenge Project
 
@@ -7,11 +7,11 @@ NASA Space Apps Challenge Project
 
 # Vision
 
-FarmScope AI helps farmers and future landowners answer:
+Farmish helps farmers and future landowners answer:
 
 > Is this land suitable for my goals today, and will it still be suitable in 10 years?
 
-Using NASA Earth Observation data, agricultural datasets, and explainable recommendations, FarmScope AI helps users:
+Using NASA Earth Observation data, agricultural datasets, and explainable recommendations, Farmish helps users:
 
 1. Evaluate farmland before purchase
 2. Understand current field conditions
@@ -279,7 +279,7 @@ Deployment:
 
 # Initial File Structure
 
-farmscope-ai/
+farmish/
 │
 ├── app/
 │   ├── page.tsx
@@ -400,6 +400,6 @@ farmscope-ai/
 
 # Main Pitch
 
-FarmScope AI combines NASA Earth observations with agricultural datasets to help current and future farmers evaluate land, plan resilient crop rotations, and understand how climate change may affect their farms over the next two decades.
+Farmish combines NASA Earth observations with agricultural datasets to help current and future farmers evaluate land, plan resilient crop rotations, and understand how climate change may affect their farms over the next two decades.
 
-Rather than replacing farmer expertise, FarmScope AI supports better decisions through accessible, explainable environmental insights.
+Rather than replacing farmer expertise, Farmish supports better decisions through accessible, explainable environmental insights.

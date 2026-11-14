@@ -1,6 +1,7 @@
-# FarmScope AI
+# Farmish
+### The dirt on your dirt.
 
-FarmScope AI helps farmers and future landowners evaluate land, understand field conditions, compare crop rotations, and explore long-term resilience using Earth observation and agricultural data.
+Farmish helps farmers and future landowners evaluate land, understand field conditions, compare crop rotations, and explore long-term resilience using Earth observation and agricultural data.
 
 ## Repository Layout
 
