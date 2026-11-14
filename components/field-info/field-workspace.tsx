@@ -1,37 +1,59 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { fieldDataProvider } from "./data/provider-config";
+import type { FieldSpec, LayerId, LayerSpec } from "./data/types";
+import { LayerSidebar } from "./layer-sidebar";
+import { WorkspaceHeader } from "./workspace-header";
+
+const fieldId = "demo-field-01";
 
 export function FieldWorkspace() {
+  const [field, setField] = useState<FieldSpec | null>(null);
+  const [layers, setLayers] = useState<LayerSpec[]>([]);
+  const [selectedLayerId, setSelectedLayerId] = useState<LayerId>("productivity");
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadWorkspaceData() {
+      try {
+        const [loadedField, loadedLayers] = await Promise.all([
+          fieldDataProvider.getField(fieldId),
+          fieldDataProvider.listLayers(fieldId),
+        ]);
+        if (!loadedField) {
+          throw new Error(`Field "${fieldId}" was not found.`);
+        }
+        if (active) {
+          setField(loadedField);
+          setLayers(loadedLayers);
+        }
+      } catch (error) {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Unexpected data-provider error.");
+        }
+      }
+    }
+
+    void loadWorkspaceData();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <main className="field-workspace">
-      <header className="field-workspace-header">
-        <div className="field-workspace-brand">
-          <Link className="field-workspace-brand-name" href="/">
-            Farmish
-          </Link>
-          <span className="field-workspace-tagline">The dirt on your dirt.</span>
-        </div>
-        <div className="field-workspace-field">
-          <div>
-            <h1>Test Field #1</h1>
-            <p>34.90 ha</p>
-          </div>
-          <Link aria-label="Close field workspace" className="field-workspace-close" href="/">
-            <span aria-hidden="true">×</span>
-            Close
-          </Link>
-        </div>
-      </header>
+      <WorkspaceHeader field={field} />
 
       <div className="field-workspace-body">
-        <aside aria-label="Field workspace layers" className="field-workspace-sidebar">
-          <p className="field-workspace-overline">Field layers</p>
-          <h2>Explore this field</h2>
-          <p className="field-workspace-description">
-            Layer controls and field insights will be added in the next step.
-          </p>
-        </aside>
+        <LayerSidebar
+          error={loadError}
+          layers={layers}
+          onSelectLayer={setSelectedLayerId}
+          selectedLayerId={selectedLayerId}
+        />
 
         <section aria-label="Field map" className="field-workspace-map">
           <div className="field-workspace-map-placeholder">
@@ -39,7 +61,8 @@ export function FieldWorkspace() {
             <p className="field-workspace-overline">Map workspace</p>
             <h2>Field map coming next</h2>
             <p>
-              The map canvas is ready for the basemap, field boundary, and data overlays.
+              {layers.find((layer) => layer.id === selectedLayerId)?.label ?? "Productivity map"} selected.
+              Map rendering is part of the GIS integration step.
             </p>
           </div>
         </section>

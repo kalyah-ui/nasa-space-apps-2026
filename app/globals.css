@@ -169,6 +169,7 @@ h1 {
   color-scheme: dark;
   --farmish-map-background: #111813;
   --farmish-map-panel: #19221c;
+  --farmish-map-raised: #202b23;
   --farmish-map-border: #344238;
   --farmish-map-text: #edf2e8;
   --farmish-map-muted: #a4b09f;
@@ -232,6 +233,20 @@ h1 {
   margin: 4px 0 0;
 }
 
+.field-workspace-demo-badge {
+  display: inline-flex;
+  margin-left: 9px;
+  padding: 3px 6px;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 999px;
+  color: var(--farmish-map-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
 .field-workspace-close {
   min-height: 40px;
   gap: 8px;
@@ -258,9 +273,208 @@ h1 {
 }
 
 .field-workspace-sidebar {
-  padding: 28px 22px;
+  overflow-y: auto;
+  padding: 14px 0 24px;
   border-right: 1px solid var(--farmish-map-border);
   background: var(--farmish-map-panel);
+}
+
+.field-workspace-search {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px 12px;
+  padding: 0 11px;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 7px;
+  background: var(--farmish-map-background);
+}
+
+.field-workspace-search:focus-within {
+  border-color: var(--farmish-map-accent);
+  outline: 2px solid rgb(182 214 129 / 22%);
+}
+
+.field-workspace-search-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1.5px solid var(--farmish-map-muted);
+  border-radius: 50%;
+}
+
+.field-workspace-search-icon::after {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  width: 6px;
+  height: 1.5px;
+  transform: rotate(45deg);
+  background: var(--farmish-map-muted);
+  content: "";
+}
+
+.field-workspace-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--farmish-map-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.field-workspace-search input::placeholder {
+  color: var(--farmish-map-muted);
+}
+
+.field-workspace-search input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.field-workspace-visually-hidden {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.field-workspace-section {
+  padding: 8px 0;
+  border-bottom: 1px solid rgb(52 66 56 / 56%);
+}
+
+.field-workspace-mode-row {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  color: var(--farmish-map-text);
+  font-size: 13px;
+}
+
+.field-workspace-mode-row.is-disabled {
+  color: var(--farmish-map-muted);
+}
+
+.field-workspace-mode-icon {
+  width: 16px;
+  color: var(--farmish-map-muted);
+  text-align: center;
+}
+
+.field-workspace-mode-current,
+.field-workspace-mode-unavailable {
+  margin-left: auto;
+  color: var(--farmish-map-accent);
+  font-size: 11px;
+}
+
+.field-workspace-mode-unavailable {
+  color: var(--farmish-map-muted);
+}
+
+.field-workspace-section-title {
+  margin: 0;
+  padding: 8px 14px 6px;
+  color: var(--farmish-map-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.field-workspace-layer-list {
+  display: grid;
+  gap: 2px;
+}
+
+.field-layer-row {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--farmish-map-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+
+.field-layer-row:hover:not(:disabled) {
+  background: var(--farmish-map-raised);
+}
+
+.field-layer-row:focus-visible {
+  outline: 2px solid var(--farmish-map-accent);
+  outline-offset: -2px;
+}
+
+.field-layer-row.is-selected {
+  background: rgb(182 214 129 / 12%);
+  color: var(--farmish-map-accent);
+}
+
+.field-layer-row:disabled {
+  color: var(--farmish-map-muted);
+  cursor: not-allowed;
+}
+
+.field-layer-indicator {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1px solid var(--farmish-map-muted);
+  border-radius: 3px;
+}
+
+.field-layer-row.is-selected .field-layer-indicator {
+  border-color: var(--farmish-map-accent);
+  background: var(--farmish-map-accent);
+  box-shadow: inset 0 0 0 3px var(--farmish-map-panel);
+}
+
+.field-layer-row:disabled .field-layer-indicator {
+  opacity: 0.55;
+}
+
+.field-layer-name {
+  min-width: 0;
+  flex: 1;
+}
+
+.field-layer-unavailable {
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+.field-workspace-index-group {
+  padding-top: 6px;
+}
+
+.field-workspace-no-results,
+.field-workspace-data-error {
+  margin: 12px;
+  color: var(--farmish-map-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.field-workspace-data-error {
+  padding: 10px;
+  border: 1px solid #8e514b;
+  border-radius: 6px;
+  background: rgb(142 81 75 / 14%);
+  color: #f0b5ac;
 }
 
 .field-workspace-overline {
@@ -357,7 +571,8 @@ h1 {
   }
 
   .field-workspace-sidebar {
-    padding: 20px 18px;
+    max-height: 42vh;
+    padding: 12px 0 16px;
     border-right: 0;
     border-bottom: 1px solid var(--farmish-map-border);
   }
