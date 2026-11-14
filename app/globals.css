@@ -185,13 +185,14 @@ h1 {
 
 .field-workspace-header {
   display: flex;
-  min-height: 76px;
+  min-height: 82px;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 14px 24px;
+  gap: 32px;
+  padding: 14px 28px;
   border-bottom: 1px solid var(--farmish-map-border);
   background: var(--farmish-map-panel);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 10%);
 }
 
 .field-workspace-brand,
@@ -202,17 +203,26 @@ h1 {
 }
 
 .field-workspace-brand {
-  gap: 12px;
+  gap: 14px;
 }
 
 .field-workspace-brand-name {
   color: var(--farmish-map-accent);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
   text-decoration: none;
+  transition: color 140ms ease;
 }
 
-.field-workspace-tagline,
+.field-workspace-tagline {
+  padding-left: 14px;
+  border-left: 1px solid var(--farmish-map-border);
+  color: var(--farmish-map-muted);
+  font-size: 12px;
+  letter-spacing: 0.015em;
+}
+
 .field-workspace-field p,
 .field-workspace-description,
 .field-workspace-map-placeholder > p:last-child {
@@ -221,16 +231,18 @@ h1 {
 }
 
 .field-workspace-field {
-  gap: 28px;
+  gap: 32px;
 }
 
 .field-workspace-field h1 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.005em;
 }
 
 .field-workspace-field p {
   margin: 4px 0 0;
+  font-size: 12px;
 }
 
 .field-workspace-demo-badge {
@@ -248,52 +260,81 @@ h1 {
 }
 
 .field-workspace-close {
-  min-height: 40px;
-  gap: 8px;
+  min-height: 38px;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
   color: var(--farmish-map-text);
   font-size: 13px;
+  font-weight: 550;
   text-decoration: none;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 
 .field-workspace-close span {
-  font-size: 22px;
+  color: var(--farmish-map-muted);
+  font-size: 21px;
   line-height: 1;
+  transition: color 140ms ease;
 }
 
-.field-workspace-close:hover,
+.field-workspace-close:hover {
+  border-color: var(--farmish-map-border);
+  background: var(--farmish-map-raised);
+  color: var(--farmish-map-accent);
+}
+
+.field-workspace-close:hover span,
 .field-workspace-brand-name:hover {
   color: var(--farmish-map-accent);
+}
+
+.field-workspace-brand-name:focus-visible,
+.field-workspace-close:focus-visible {
+  outline: 2px solid var(--farmish-map-accent);
+  outline-offset: 3px;
 }
 
 .field-workspace-body {
   display: grid;
   min-height: 0;
   flex: 1;
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(250px, 292px) minmax(0, 1fr);
 }
 
 .field-workspace-sidebar {
   overflow-y: auto;
-  padding: 14px 0 24px;
+  padding: 16px 0 24px;
   border-right: 1px solid var(--farmish-map-border);
   background: var(--farmish-map-panel);
+  scrollbar-color: var(--farmish-map-border) transparent;
+  scrollbar-width: thin;
 }
 
 .field-workspace-search {
   display: flex;
-  min-height: 40px;
+  min-height: 42px;
   align-items: center;
-  gap: 10px;
-  margin: 0 12px 12px;
-  padding: 0 11px;
+  gap: 11px;
+  margin: 0 14px 14px;
+  padding: 0 12px;
   border: 1px solid var(--farmish-map-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--farmish-map-background);
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .field-workspace-search:focus-within {
   border-color: var(--farmish-map-accent);
-  outline: 2px solid rgb(182 214 129 / 22%);
+  background: #141d17;
+  box-shadow: 0 0 0 3px rgb(182 214 129 / 13%);
 }
 
 .field-workspace-search-icon {
@@ -324,7 +365,8 @@ h1 {
   background: transparent;
   color: var(--farmish-map-text);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .field-workspace-search input::placeholder {
@@ -346,71 +388,97 @@ h1 {
 }
 
 .field-workspace-section {
-  padding: 8px 0;
+  padding: 9px 0;
   border-bottom: 1px solid rgb(52 66 56 / 56%);
 }
 
 .field-workspace-mode-row {
   display: flex;
-  min-height: 38px;
+  min-height: 40px;
   align-items: center;
-  gap: 10px;
-  padding: 0 16px;
+  gap: 11px;
+  margin: 1px 8px;
+  padding: 0 10px;
+  border-radius: 7px;
   color: var(--farmish-map-text);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 520;
 }
 
 .field-workspace-mode-row.is-disabled {
   color: var(--farmish-map-muted);
+  opacity: 0.78;
 }
 
 .field-workspace-mode-icon {
-  width: 16px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
   color: var(--farmish-map-muted);
+  font-size: 15px;
   text-align: center;
 }
 
 .field-workspace-mode-current,
 .field-workspace-mode-unavailable {
   margin-left: auto;
+  padding: 4px 7px;
+  border: 1px solid rgb(182 214 129 / 22%);
+  border-radius: 999px;
+  background: rgb(182 214 129 / 8%);
   color: var(--farmish-map-accent);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .field-workspace-mode-unavailable {
+  border-color: var(--farmish-map-border);
+  background: transparent;
   color: var(--farmish-map-muted);
+  font-weight: 500;
 }
 
 .field-workspace-section-title {
   margin: 0;
-  padding: 8px 14px 6px;
+  padding: 9px 16px 8px;
   color: var(--farmish-map-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.095em;
+  text-transform: uppercase;
 }
 
 .field-workspace-layer-list {
   display: grid;
-  gap: 2px;
+  gap: 3px;
+  padding: 0 8px;
 }
 
 .field-layer-row {
   display: flex;
-  min-height: 38px;
+  min-height: 40px;
   align-items: center;
   gap: 10px;
-  padding: 6px 12px 6px 16px;
+  padding: 6px 10px;
   border: 0;
+  border-radius: 7px;
   background: transparent;
   color: var(--farmish-map-text);
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 520;
   text-align: left;
+  transition:
+    background-color 130ms ease,
+    color 130ms ease,
+    opacity 130ms ease;
 }
 
 .field-layer-row:hover:not(:disabled) {
   background: var(--farmish-map-raised);
+  color: var(--farmish-map-text);
 }
 
 .field-layer-row:focus-visible {
@@ -419,21 +487,27 @@ h1 {
 }
 
 .field-layer-row.is-selected {
-  background: rgb(182 214 129 / 12%);
+  background: rgb(182 214 129 / 11%);
   color: var(--farmish-map-accent);
+  box-shadow: inset 2px 0 0 var(--farmish-map-accent);
 }
 
 .field-layer-row:disabled {
   color: var(--farmish-map-muted);
   cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .field-layer-indicator {
   width: 14px;
   height: 14px;
   flex: 0 0 14px;
-  border: 1px solid var(--farmish-map-muted);
-  border-radius: 3px;
+  border: 1px solid #728071;
+  border-radius: 4px;
+  transition:
+    background-color 130ms ease,
+    border-color 130ms ease,
+    box-shadow 130ms ease;
 }
 
 .field-layer-row.is-selected .field-layer-indicator {
@@ -453,7 +527,8 @@ h1 {
 
 .field-layer-unavailable {
   color: var(--farmish-map-muted);
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 500;
   text-align: right;
 }
 
@@ -562,8 +637,17 @@ h1 {
   .field-workspace-header {
     align-items: flex-start;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
     padding: 16px 18px;
+  }
+
+  .field-workspace-brand {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .field-workspace-tagline {
+    padding-left: 10px;
   }
 
   .field-workspace-body {
@@ -575,6 +659,12 @@ h1 {
     padding: 12px 0 16px;
     border-right: 0;
     border-bottom: 1px solid var(--farmish-map-border);
+  }
+
+  .field-workspace-field {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .field-workspace-map {
