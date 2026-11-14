@@ -498,45 +498,154 @@ h1 {
 }
 
 .field-workspace-map {
-  display: grid;
+  position: relative;
   min-height: 460px;
-  place-items: center;
-  padding: 32px;
-  background:
-    radial-gradient(ellipse at 68% 32%, rgb(91 119 78 / 24%), transparent 34%),
-    radial-gradient(ellipse at 32% 76%, rgb(70 91 61 / 20%), transparent 38%),
-    #172019;
+  overflow: hidden;
+  background: #172019;
 }
 
-.field-workspace-map-placeholder {
-  max-width: 380px;
-  padding: 28px;
-  border: 1px solid var(--farmish-map-border);
-  border-radius: 12px;
-  background: rgb(25 34 28 / 92%);
-  text-align: center;
+.field-map-canvas {
+  position: absolute;
+  inset: 0;
 }
 
-.field-workspace-map-mark {
+.field-map-address-search {
+  position: absolute;
+  z-index: 3;
+  top: 16px;
+  left: 16px;
   display: grid;
-  width: 42px;
-  height: 42px;
-  margin: 0 auto 20px;
-  place-items: center;
+  width: min(430px, calc(100% - 96px));
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 6px;
   border: 1px solid var(--farmish-map-border);
-  border-radius: 50%;
-  color: var(--farmish-map-accent);
-  font-size: 18px;
+  border-radius: 8px;
+  background: rgb(25 34 28 / 94%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(8px);
+}
+
+.field-map-address-search:focus-within {
+  border-color: var(--farmish-map-accent);
+  outline: 2px solid rgb(182 214 129 / 22%);
+}
+
+.field-map-address-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--farmish-map-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.field-map-address-search input::placeholder {
+  color: var(--farmish-map-muted);
+}
+
+.field-map-address-search button {
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 13px;
+  background: var(--farmish-map-accent);
+  color: #172019;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
   font-weight: 700;
 }
 
-.field-workspace-map-placeholder .field-workspace-overline {
-  margin-bottom: 8px;
+.field-map-address-search button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
-.field-workspace-map-placeholder > p:last-child {
-  margin: 10px 0 0;
-  line-height: 1.55;
+.field-map-address-feedback {
+  grid-column: 1 / -1;
+  padding: 5px 10px 3px;
+  border-top: 1px solid var(--farmish-map-border);
+  color: var(--farmish-map-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.field-map-address-feedback.is-error {
+  color: #f5c5be;
+}
+
+.field-map-message,
+.field-map-selection {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 8px;
+  background: rgb(25 34 28 / 92%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(8px);
+}
+
+.field-map-message {
+  top: 50%;
+  left: 50%;
+  display: flex;
+  max-width: min(420px, calc(100% - 40px));
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  transform: translate(-50%, -50%);
+  color: var(--farmish-map-text);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.field-map-message.is-error {
+  border-color: #8e514b;
+  background: rgb(59 31 29 / 94%);
+  color: #f5c5be;
+}
+
+.field-map-selection {
+  bottom: 24px;
+  left: 24px;
+  display: grid;
+  min-width: min(260px, calc(100% - 48px));
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+.field-map-selection span {
+  color: var(--farmish-map-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field-map-selection strong {
+  font-size: 16px;
+}
+
+.field-map-selection small {
+  color: var(--farmish-map-muted);
+  font-size: 11px;
+}
+
+.field-workspace-map .mapboxgl-ctrl-group {
+  overflow: hidden;
+  border: 1px solid var(--farmish-map-border);
+  background: var(--farmish-map-panel);
+}
+
+.field-workspace-map .mapboxgl-ctrl-group button {
+  filter: invert(1);
+}
+
+.field-workspace-map .mapboxgl-ctrl-attrib {
+  color-scheme: light;
 }
 
 @media (max-width: 700px) {
@@ -579,6 +688,18 @@ h1 {
 
   .field-workspace-map {
     min-height: 360px;
-    padding: 20px;
+  }
+
+  .field-map-address-search {
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 76px);
+  }
+
+  .field-map-selection {
+    right: 16px;
+    bottom: 30px;
+    left: 16px;
+    min-width: 0;
   }
 }
