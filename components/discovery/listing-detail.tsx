@@ -3,6 +3,10 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EstimateBadge } from "@/components/ui/estimate-badge";
+import { ClimatePanel } from "./charts/climate-panel";
+import { ForecastPanel } from "./charts/forecast-panel";
+import { SoilWaterPanel } from "./charts/soil-water-panel";
+import { formatNumber, SourceErrorRow, useWeatherData } from "./weather-support";
 import {
   averageTemperature,
   daysToNextFrost,
@@ -29,51 +33,6 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
-
-type SourceState<T> = { status: "loading" | "ready" | "error"; data?: T; error?: string };
-
-/**
- * Loads one weather dataset for a listing with per-source status and retry.
- * The provider's cache makes re-selecting a listing instant.
- */
-function useWeatherData<T>(listingId: string, load: () => Promise<T>): [SourceState<T>, () => void] {
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<SourceState<T>>({ status: "loading" });
-  const loadRef = useRef(load);
-  loadRef.current = load;
-
-  useEffect(() => {
-    let active = true;
-    setState({ status: "loading" });
-    loadRef.current().then(
-      (data) => {
-        if (active) {
-          setState({ status: "ready", data });
-        }
-      },
-      (error: unknown) => {
-        if (active) {
-          setState({
-            status: "error",
-            error: error instanceof Error ? error.message : "Unexpected error.",
-          });
-        }
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [listingId, attempt]);
-
-  return [state, () => setAttempt((count) => count + 1)];
-}
-
-function formatNumber(value: number, decimals = 0): string {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-}
 
 type KpiTileProps = {
   label: string;
@@ -146,27 +105,6 @@ function buildVerdict(args: {
   return sentences.join(" ");
 }
 
-function SourceErrorRow({
-  sourceLabel,
-  message,
-  onRetry,
-}: {
-  sourceLabel: string;
-  message?: string;
-  onRetry: () => void;
-}) {
-  return (
-    <p className="source-error" role="alert">
-      <span>
-        {sourceLabel} data unavailable{message ? ` (${message})` : ""}.
-      </span>
-      <button className="source-error-retry" onClick={onRetry} type="button">
-        Retry
-      </button>
-    </p>
-  );
-}
-
 type ListingDetailProps = {
   listing: DemoListing;
   onClose: () => void;
@@ -176,8 +114,10 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const tablistRef = useRef<HTMLDivElement>(null);
 
+  // 365 days so the Climate tab can chart this year vs the normals;
+  // the Overview KPIs read the most recent 30 and charts slice the last 90.
   const [history, retryHistory] = useWeatherData<DailyHistory>(listing.id, () =>
-    weatherProvider.getDailyHistory(listing.latitude, listing.longitude),
+    weatherProvider.getDailyHistory(listing.latitude, listing.longitude, 365),
   );
   const [normals, retryNormals] = useWeatherData<ClimateNormals>(listing.id, () =>
     weatherProvider.getClimateNormals(listing.latitude, listing.longitude),
@@ -336,28 +276,24 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
 
       {activeTab === "climate" ? (
         <div aria-labelledby="tab-climate" className="listing-detail-panel" id="panel-climate" role="tabpanel">
-          <p className="listing-detail-placeholder">
-            90-day rainfall and temperature, plus this year against the{" "}
-            {normals.data?.period ?? "long-term"} normals. Charts take root here in the next step.
-          </p>
+          <ClimatePanel
+            history={history}
+            normals={normals}
+            onRetryHistory={retryHistory}
+            onRetryNormals={retryNormals}
+          />
         </div>
       ) : null}
 
       {activeTab === "soil-water" ? (
         <div aria-labelledby="tab-soil-water" className="listing-detail-panel" id="panel-soil-water" role="tabpanel">
-          <p className="listing-detail-placeholder">
-            Soil moisture, soil temperature, and evapotranspiration. Charts take root here in the
-            next step.
-          </p>
+          <SoilWaterPanel forecast={forecast} onRetry={retryForecast} />
         </div>
       ) : null}
 
       {activeTab === "forecast" ? (
         <div aria-labelledby="tab-forecast" className="listing-detail-panel" id="panel-forecast" role="tabpanel">
-          <p className="listing-detail-placeholder">
-            The 7-day outlook{forecast.data ? ` for ${forecast.data.timezone}` : ""}. Charts take
-            root here in the next step.
-          </p>
+          <ForecastPanel forecast={forecast} onRetry={retryForecast} />
         </div>
       ) : null}
 

@@ -34,6 +34,12 @@
   /* Motion */
   --farmish-duration: 200ms;
   --farmish-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Chart series colors — validated for the dark surface (dataviz six checks). */
+  --chart-rain: #2a78d6;
+  --chart-temp: #e05b2b;
+  --chart-et0: #1baf7a;
+  --chart-normal: #8a948a;
 }
 
 /* Light theme — same token names, accent darkened to hold ≥4.5:1 contrast. */
@@ -51,6 +57,12 @@
   --farmish-surface-soft: rgb(255 255 255 / 60%);
   --farmish-danger-border: #c2574c;
   --farmish-danger-ink: #8e2f26;
+
+  /* Chart series colors — validated for the light surface. */
+  --chart-rain: #2a78d6;
+  --chart-temp: #eb6834;
+  --chart-et0: #1baf7a;
+  --chart-normal: #6d786d;
 }
 
 * {
@@ -885,6 +897,222 @@ h1 {
 
 .listing-detail-attribution a:hover {
   color: var(--farmish-accent);
+}
+
+/* ---- Charts ------------------------------------------------------------- */
+
+.chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--farmish-space-2);
+}
+
+.chart-title {
+  margin: 0;
+  color: var(--farmish-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--farmish-space-3);
+  color: var(--farmish-muted);
+  font-size: 11px;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  border-radius: 2px;
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.chart-wrap:focus-visible {
+  border-radius: var(--farmish-radius-control);
+  outline: 2px solid var(--farmish-accent);
+  outline-offset: 2px;
+}
+
+.chart-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--farmish-font-sans);
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 4px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 7px 10px;
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-control);
+  background: var(--farmish-panel);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+  gap: 3px;
+  font-size: 11px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.chart-tooltip-label {
+  color: var(--farmish-muted);
+  font-size: 10px;
+}
+
+.chart-tooltip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip-row strong {
+  color: var(--farmish-ink);
+}
+
+.chart-tooltip-series {
+  color: var(--farmish-muted);
+}
+
+.chart-tooltip-key {
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.chart-empty {
+  margin: 0;
+  color: var(--farmish-muted);
+  font-size: 13px;
+}
+
+.chart-skeleton {
+  height: 150px;
+}
+
+.chart-table summary {
+  color: var(--farmish-muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.chart-table summary:hover {
+  color: var(--farmish-accent);
+}
+
+.chart-table-scroll {
+  overflow-y: auto;
+  max-height: 180px;
+  margin-top: var(--farmish-space-2);
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-control);
+  scrollbar-color: var(--farmish-border) transparent;
+  scrollbar-width: thin;
+}
+
+.chart-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-table th,
+.chart-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--farmish-border);
+  text-align: right;
+}
+
+.chart-table th[scope="row"],
+.chart-table thead th:first-child {
+  color: var(--farmish-muted);
+  font-weight: 500;
+  text-align: left;
+}
+
+.chart-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--farmish-panel);
+  color: var(--farmish-muted);
+  font-weight: 650;
+}
+
+/* ---- Forecast strip ------------------------------------------------------ */
+
+.forecast-strip {
+  display: grid;
+  gap: var(--farmish-space-2);
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+}
+
+.forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--farmish-space-3) var(--farmish-space-2);
+  border: 1px solid var(--farmish-border);
+  border-radius: var(--farmish-radius-control);
+  background: var(--farmish-raised);
+  gap: 5px;
+  text-align: center;
+}
+
+.forecast-day-name {
+  color: var(--farmish-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.forecast-day-sky {
+  min-height: 2.4em;
+  color: var(--farmish-ink);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.forecast-day-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-day-temps strong {
+  color: var(--farmish-ink);
+  font-weight: 700;
+}
+
+.forecast-day-temps span {
+  color: var(--farmish-muted);
+}
+
+.forecast-day-rain {
+  color: var(--farmish-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 960px) {
