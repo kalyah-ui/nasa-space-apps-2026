@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { EstimateBadge } from "@/components/ui/estimate-badge";
 import { ListingCard } from "./listing-card";
+import { ListingDetail } from "./listing-detail";
 import { DEMO_LISTINGS_LABEL, demoListings } from "./listings/demo-listings";
 import { landScore } from "./listings/land-score";
 import type { MapMarker } from "./map-contract";
@@ -24,6 +25,8 @@ export function DiscoveryBrowser() {
   const toggleSelected = (listingId: string) => {
     setSelectedId((current) => (current === listingId ? null : listingId));
   };
+
+  const selectedListing = demoListings.find((listing) => listing.id === selectedId) ?? null;
 
   const markers = useMemo<MapMarker[]>(
     () =>
@@ -83,6 +86,12 @@ export function DiscoveryBrowser() {
           onSelectMarker={toggleSelected}
           selectedMarkerId={selectedId}
         />
+        {selectedListing ? (
+          <ListingDetail
+            listing={selectedListing}
+            onClose={() => setSelectedId(null)}
+          />
+        ) : null}
       </div>
     </div>
   );

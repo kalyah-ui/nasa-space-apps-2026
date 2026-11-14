@@ -1,0 +1,374 @@
+"use client";
+
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { EstimateBadge } from "@/components/ui/estimate-badge";
+import {
+  averageTemperature,
+  daysToNextFrost,
+  drynessIndex,
+  drynessLabel,
+  estimateFormulas,
+  rainfallTotal,
+} from "@/lib/weather/derived";
+import { weatherProvider } from "@/lib/weather/live-provider";
+import {
+  type ClimateNormals,
+  type DailyHistory,
+  type Forecast,
+  SOURCE_ATTRIBUTION,
+} from "@/lib/weather/types";
+import type { DemoListing } from "./listings/demo-listings";
+import { LAND_SCORE_NOTE, landScore } from "./listings/land-score";
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "climate", label: "Climate" },
+  { id: "soil-water", label: "Soil and water" },
+  { id: "forecast", label: "Forecast" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
+type SourceState<T> = { status: "loading" | "ready" | "error"; data?: T; error?: string };
+
+/**
+ * Loads one weather dataset for a listing with per-source status and retry.
+ * The provider's cache makes re-selecting a listing instant.
+ */
+function useWeatherData<T>(listingId: string, load: () => Promise<T>): [SourceState<T>, () => void] {
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState<SourceState<T>>({ status: "loading" });
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  useEffect(() => {
+    let active = true;
+    setState({ status: "loading" });
+    loadRef.current().then(
+      (data) => {
+        if (active) {
+          setState({ status: "ready", data });
+        }
+      },
+      (error: unknown) => {
+        if (active) {
+          setState({
+            status: "error",
+            error: error instanceof Error ? error.message : "Unexpected error.",
+          });
+        }
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [listingId, attempt]);
+
+  return [state, () => setAttempt((count) => count + 1)];
+}
+
+function formatNumber(value: number, decimals = 0): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+type KpiTileProps = {
+  label: string;
+  value: string | null;
+  unit?: string;
+  note?: string;
+  loading?: boolean;
+  estimateTitle?: string;
+};
+
+function KpiTile({ label, value, unit, note, loading, estimateTitle }: KpiTileProps) {
+  return (
+    <div className="kpi-tile">
+      <span className="kpi-tile-label">
+        {label}
+        {estimateTitle ? <EstimateBadge title={estimateTitle} /> : null}
+      </span>
+      {loading ? (
+        <span aria-hidden="true" className="skeleton kpi-tile-skeleton" />
+      ) : (
+        <span className="kpi-tile-value">
+          {value ?? "—"}
+          {value !== null && unit ? <span className="kpi-tile-unit"> {unit}</span> : null}
+        </span>
+      )}
+      {note ? <span className="kpi-tile-note">{note}</span> : null}
+    </div>
+  );
+}
+
+function buildVerdict(args: {
+  score: number;
+  rain30: number | null;
+  dryness: number | null;
+  frostIn: number | null | undefined;
+  soilMoisture: number | null;
+}): string {
+  const sentences: string[] = [];
+
+  if (args.score >= 70) {
+    sentences.push("Good dirt, by our demo math.");
+  } else if (args.score >= 45) {
+    sentences.push("Fair dirt, by our demo math.");
+  } else {
+    sentences.push("Tough dirt, by our demo math.");
+  }
+
+  if (args.dryness !== null && args.rain30 !== null) {
+    sentences.push(
+      `${drynessLabel(args.dryness)} lately — ${formatNumber(args.rain30)} mm of rain in the last 30 days.`,
+    );
+  }
+
+  if (args.frostIn !== undefined) {
+    if (args.frostIn === null) {
+      sentences.push("No frost in the next week's forecast.");
+    } else if (args.frostIn <= 2) {
+      sentences.push(
+        `Frost knocking ${args.frostIn === 0 ? "today" : `in ${args.frostIn} day${args.frostIn === 1 ? "" : "s"}`} — mind anything tender.`,
+      );
+    } else {
+      sentences.push(`First frost risk in about ${args.frostIn} days.`);
+    }
+  }
+
+  if (args.soilMoisture !== null && args.soilMoisture < 0.15) {
+    sentences.push("Topsoil's running thirsty.");
+  }
+
+  return sentences.join(" ");
+}
+
+function SourceErrorRow({
+  sourceLabel,
+  message,
+  onRetry,
+}: {
+  sourceLabel: string;
+  message?: string;
+  onRetry: () => void;
+}) {
+  return (
+    <p className="source-error" role="alert">
+      <span>
+        {sourceLabel} data unavailable{message ? ` (${message})` : ""}.
+      </span>
+      <button className="source-error-retry" onClick={onRetry} type="button">
+        Retry
+      </button>
+    </p>
+  );
+}
+
+type ListingDetailProps = {
+  listing: DemoListing;
+  onClose: () => void;
+};
+
+export function ListingDetail({ listing, onClose }: ListingDetailProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const tablistRef = useRef<HTMLDivElement>(null);
+
+  const [history, retryHistory] = useWeatherData<DailyHistory>(listing.id, () =>
+    weatherProvider.getDailyHistory(listing.latitude, listing.longitude),
+  );
+  const [normals, retryNormals] = useWeatherData<ClimateNormals>(listing.id, () =>
+    weatherProvider.getClimateNormals(listing.latitude, listing.longitude),
+  );
+  const [forecast, retryForecast] = useWeatherData<Forecast>(listing.id, () =>
+    weatherProvider.getForecast(listing.latitude, listing.longitude),
+  );
+
+  // Reset to Overview when switching listings.
+  useEffect(() => {
+    setActiveTab("overview");
+  }, [listing.id]);
+
+  const onTablistKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+      return;
+    }
+    event.preventDefault();
+    const currentIndex = TABS.findIndex((tab) => tab.id === activeTab);
+    const delta = event.key === "ArrowRight" ? 1 : -1;
+    const next = TABS[(currentIndex + delta + TABS.length) % TABS.length];
+    setActiveTab(next.id);
+    tablistRef.current
+      ?.querySelector<HTMLButtonElement>(`#tab-${next.id}`)
+      ?.focus();
+  };
+
+  const score = landScore(listing);
+  const historyDays = history.data?.days ?? [];
+  const rain30 = history.status === "ready" ? rainfallTotal(historyDays) : null;
+  const temp30 = history.status === "ready" ? averageTemperature(historyDays) : null;
+  const dryness =
+    history.status === "ready" && normals.status === "ready" && normals.data
+      ? drynessIndex(historyDays, normals.data)
+      : null;
+  const frostIn =
+    forecast.status === "ready" && forecast.data ? daysToNextFrost(forecast.data.days) : undefined;
+  const soilMoisture =
+    forecast.status === "ready" ? (forecast.data?.days[0]?.soilMoisture ?? null) : null;
+
+  const anyReady =
+    history.status === "ready" || normals.status === "ready" || forecast.status === "ready";
+  const lastUpdated = [history.data?.fetchedAt, normals.data?.fetchedAt, forecast.data?.fetchedAt]
+    .filter((timestamp): timestamp is string => Boolean(timestamp))
+    .sort()
+    .pop();
+
+  return (
+    <section aria-label={`${listing.name} details`} className="listing-detail">
+      <header className="listing-detail-header">
+        <div>
+          <h2 className="listing-detail-name">
+            {listing.name} <EstimateBadge kind="demo" />
+          </h2>
+          <p className="listing-detail-sub">
+            {listing.acres.toLocaleString("en-US")} ac · {listing.latitude.toFixed(3)},{" "}
+            {listing.longitude.toFixed(3)}
+          </p>
+        </div>
+        <button aria-label="Close listing details" className="listing-detail-close" onClick={onClose} type="button">
+          <X aria-hidden="true" size={16} strokeWidth={2} />
+        </button>
+      </header>
+
+      <div
+        aria-label="Listing data tabs"
+        className="listing-detail-tabs"
+        onKeyDown={onTablistKeyDown}
+        ref={tablistRef}
+        role="tablist"
+      >
+        {TABS.map((tab) => (
+          <button
+            aria-controls={`panel-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            className={`listing-detail-tab${activeTab === tab.id ? " is-active" : ""}`}
+            id={`tab-${tab.id}`}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "overview" ? (
+        <div aria-labelledby="tab-overview" className="listing-detail-panel" id="panel-overview" role="tabpanel">
+          {history.status === "error" ? (
+            <SourceErrorRow message={history.error} onRetry={retryHistory} sourceLabel="NASA POWER history" />
+          ) : null}
+          {normals.status === "error" ? (
+            <SourceErrorRow message={normals.error} onRetry={retryNormals} sourceLabel="NASA POWER normals" />
+          ) : null}
+          {forecast.status === "error" ? (
+            <SourceErrorRow message={forecast.error} onRetry={retryForecast} sourceLabel="Open-Meteo forecast" />
+          ) : null}
+
+          <div className="kpi-grid">
+            <KpiTile
+              label="30-day rain"
+              loading={history.status === "loading"}
+              note="NASA POWER"
+              unit="mm"
+              value={rain30 !== null ? formatNumber(rain30) : null}
+            />
+            <KpiTile
+              label="Avg temp (30d)"
+              loading={history.status === "loading"}
+              note="NASA POWER"
+              unit="°C"
+              value={temp30 !== null ? formatNumber(temp30, 1) : null}
+            />
+            <KpiTile
+              label="Soil moisture"
+              loading={forecast.status === "loading"}
+              note="3–9 cm, Open-Meteo"
+              unit="vol %"
+              value={soilMoisture !== null ? formatNumber(soilMoisture * 100) : null}
+            />
+            <KpiTile
+              estimateTitle={estimateFormulas.daysToNextFrost}
+              label="Frost risk"
+              loading={forecast.status === "loading"}
+              note={frostIn === null ? "none in 7-day window" : "first day with Tmin ≤ 2°C"}
+              unit={frostIn === null ? undefined : "days"}
+              value={frostIn === undefined ? null : frostIn === null ? "7+" : `${frostIn}`}
+            />
+          </div>
+
+          <div className="land-score-row">
+            <span className="kpi-tile-label">
+              Land score <EstimateBadge title={LAND_SCORE_NOTE} />
+            </span>
+            <span className="land-score-value">{score}</span>
+            <span className="kpi-tile-note">/ 100, demo heuristic</span>
+          </div>
+
+          {anyReady ? (
+            <blockquote className="listing-verdict">
+              {buildVerdict({ score, rain30, dryness, frostIn, soilMoisture })}
+              <footer className="listing-verdict-tag">
+                Rule-based read, no AI involved <EstimateBadge />
+              </footer>
+            </blockquote>
+          ) : null}
+
+          <p className="listing-detail-price-row">
+            Asking <span className="listing-detail-price">${listing.priceUsd.toLocaleString("en-US")}</span>{" "}
+            · {listing.description}
+          </p>
+        </div>
+      ) : null}
+
+      {activeTab === "climate" ? (
+        <div aria-labelledby="tab-climate" className="listing-detail-panel" id="panel-climate" role="tabpanel">
+          <p className="listing-detail-placeholder">
+            90-day rainfall and temperature, plus this year against the{" "}
+            {normals.data?.period ?? "long-term"} normals. Charts take root here in the next step.
+          </p>
+        </div>
+      ) : null}
+
+      {activeTab === "soil-water" ? (
+        <div aria-labelledby="tab-soil-water" className="listing-detail-panel" id="panel-soil-water" role="tabpanel">
+          <p className="listing-detail-placeholder">
+            Soil moisture, soil temperature, and evapotranspiration. Charts take root here in the
+            next step.
+          </p>
+        </div>
+      ) : null}
+
+      {activeTab === "forecast" ? (
+        <div aria-labelledby="tab-forecast" className="listing-detail-panel" id="panel-forecast" role="tabpanel">
+          <p className="listing-detail-placeholder">
+            The 7-day outlook{forecast.data ? ` for ${forecast.data.timezone}` : ""}. Charts take
+            root here in the next step.
+          </p>
+        </div>
+      ) : null}
+
+      <footer className="listing-detail-attribution">
+        Data: <a href={SOURCE_ATTRIBUTION["nasa-power"].url} rel="noreferrer" target="_blank">NASA POWER</a>
+        {" · "}
+        <a href={SOURCE_ATTRIBUTION["open-meteo"].url} rel="noreferrer" target="_blank">Open-Meteo</a>
+        {lastUpdated
+          ? ` · updated ${new Date(lastUpdated).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`
+          : ""}
+      </footer>
+    </section>
+  );
+}
