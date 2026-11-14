@@ -4,6 +4,7 @@ import {
   type DailyHistoryDay,
   type Forecast,
   type ForecastDay,
+  type GeocodeResult,
   type MonthlyNormal,
   type WeatherProvider,
   type WeatherSource,
@@ -12,6 +13,7 @@ import {
 
 const POWER_BASE = "https://power.larc.nasa.gov/api/temporal";
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast";
+const GEOCODE_BASE = "https://geocoding-api.open-meteo.com/v1/search";
 const POWER_PARAMETERS = "PRECTOTCORR,T2M,T2M_MIN,T2M_MAX,ALLSKY_SFC_SW_DWN";
 const POWER_FILL_VALUE = -999;
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -22,6 +24,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const HISTORY_TTL_MS = 6 * 60 * 60 * 1000;
 const NORMALS_TTL_MS = 24 * 60 * 60 * 1000;
 const FORECAST_TTL_MS = 30 * 60 * 1000;
+const GEOCODE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const MONTH_KEYS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"] as const;
 
@@ -228,6 +231,39 @@ export class LiveWeatherProvider implements WeatherProvider {
         days: parsedDays,
         fetchedAt: new Date().toISOString(),
       };
+    });
+  }
+
+  async geocode(query: string): Promise<GeocodeResult[]> {
+    const normalized = query.trim().toLocaleLowerCase();
+    return this.cached("geocode", 0, 0, GEOCODE_TTL_MS, normalized, async () => {
+      const url = `${GEOCODE_BASE}?name=${encodeURIComponent(normalized)}&count=8&language=en&format=json`;
+      const payload = (await fetchJson(url, "open-meteo")) as {
+        results?: Array<{
+          id?: number;
+          name?: string;
+          latitude?: number;
+          longitude?: number;
+          admin1?: string;
+          country?: string;
+        }>;
+      };
+
+      return (payload.results ?? [])
+        .filter(
+          (entry) =>
+            typeof entry.name === "string" &&
+            typeof entry.latitude === "number" &&
+            typeof entry.longitude === "number",
+        )
+        .map((entry) => ({
+          id: `${entry.id ?? `${entry.latitude},${entry.longitude}`}`,
+          name: entry.name as string,
+          latitude: entry.latitude as number,
+          longitude: entry.longitude as number,
+          admin1: entry.admin1,
+          country: entry.country,
+        }));
     });
   }
 

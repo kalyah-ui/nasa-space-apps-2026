@@ -104,6 +104,16 @@ export type Forecast = {
   fetchedAt: string;
 };
 
+export type GeocodeResult = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  /** Region / state, when reported. */
+  admin1?: string;
+  country?: string;
+};
+
 export interface WeatherProvider {
   /** Daily history for the last `days` days (default 90). */
   getDailyHistory(latitude: number, longitude: number, days?: number): Promise<DailyHistory>;
@@ -111,6 +121,8 @@ export interface WeatherProvider {
   getClimateNormals(latitude: number, longitude: number): Promise<ClimateNormals>;
   /** 7-day forecast including soil moisture/temperature and ET0. */
   getForecast(latitude: number, longitude: number): Promise<Forecast>;
+  /** Place search by name (Open-Meteo geocoding). */
+  geocode(query: string): Promise<GeocodeResult[]>;
 }
 
 export const SOURCE_ATTRIBUTION: Record<WeatherSource, { label: string; url: string }> = {
