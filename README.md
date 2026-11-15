@@ -1,7 +1,7 @@
-# Farmish
+# loam
 ### The dirt on your dirt.
 
-Farmish helps farmers and future landowners evaluate land, understand field conditions, compare crop rotations, and explore long-term resilience using Earth observation and agricultural data.
+loam helps farmers and future landowners evaluate land, understand field conditions, compare crop rotations, and explore long-term resilience using Earth observation and agricultural data.
 
 ## Repository Layout
 
@@ -46,7 +46,7 @@ The API health check is available at http://localhost:8000/health.
 
 After datasets have been uploaded, team members can browse or download them
 from the private Google Cloud Storage bucket. The current bucket name is
-`nasa_space_apps_2026_loam`; confirm the bucket and object paths with the data
+`nasa_spaceapps_2026_loam`; confirm the bucket and object paths with the data
 lead before using them. Files are not available here until they have actually
 been uploaded.
 
@@ -58,7 +58,7 @@ bucket:
 
 ```bash
 gcloud auth login
-gcloud storage ls gs://nasa_space_apps_2026_loam/raw/
+gcloud storage ls gs://nasa_spaceapps_2026_loam/raw/
 ```
 
 For example, to copy the daily IMERG files for 2020 to the local `data/`
@@ -66,7 +66,7 @@ directory:
 
 ```bash
 gcloud storage cp --recursive \
-  gs://nasa_space_apps_2026_loam/raw/gpm-imerg-final/v07/daily/2020/ \
+  gs://nasa_spaceapps_2026_loam/raw/gpm-imerg-final/v07/daily/2020/ \
   ./data/imerg/daily/2020/
 ```
 
@@ -92,7 +92,7 @@ from pathlib import Path
 import netCDF4
 from google.cloud import storage
 
-bucket_name = "nasa_space_apps_2026_loam"
+bucket_name = "nasa_spaceapps_2026_loam"
 object_name = (
     "raw/gpm-imerg-final/v07/daily/2020/"
     "REPLACE_WITH_THE_ORIGINAL_NASA_GRANULE_FILENAME.nc4"
@@ -121,6 +121,33 @@ Applications running in Google Cloud should use their attached service
 account or workload identity for server-side bucket access. Do not make the
 bucket public, put credentials in the frontend, or commit service-account key
 files or Earthdata credentials.
+
+### Application data API
+
+The FastAPI backend lists and streams objects from the approved `raw/`,
+`processed/`, and `catalogs/` prefixes. It uses Application Default Credentials
+on a developer machine and the attached service identity when deployed. Start
+the backend with:
+
+```bash
+gcloud auth application-default login
+export GCS_BUCKET_NAME=nasa_spaceapps_2026_loam
+uvicorn backend.main:app --reload
+```
+
+Browse a bounded page of raw objects at
+`http://localhost:8000/api/data/objects?prefix=raw/&page_size=100`. Follow
+`next_page_token` to request another page. Each object includes a
+`download_url`; downloads are streamed through the backend so Google Cloud
+credentials stay server-side. The API supports `GCS_ALLOWED_PREFIXES` as a
+comma-separated allowlist and `FRONTEND_ORIGINS` as a comma-separated CORS
+allowlist. Set `NEXT_PUBLIC_DATA_API_URL` to the backend origin when the
+frontend and API are not both running on localhost.
+
+The object API exposes stored files but does not yet decode raw NetCDF, raster,
+or STAC assets into field-layer samples. Keep `NEXT_PUBLIC_DATA_PROVIDER=mock`
+until a dataset-specific adapter and its spatial/temporal semantics are
+validated.
 
 ### STAC catalogs and file naming
 

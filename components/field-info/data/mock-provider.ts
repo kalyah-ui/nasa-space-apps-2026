@@ -34,7 +34,7 @@ const field: FieldSpec = {
   healthScore: {
     value: 74,
     label: "Illustrative demo score",
-    note: "Example only; not calculated using an approved Farmish scoring methodology.",
+    note: "Example only; not calculated using an approved loam scoring methodology.",
     subScores: [
       { id: "vegetation", label: "Vegetation health", value: 78 },
       { id: "soil-cover", label: "Soil cover", value: 69 },

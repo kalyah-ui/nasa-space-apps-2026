@@ -170,7 +170,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
             <g key={tick}>
               <line
                 shapeRendering="crispEdges"
-                stroke="var(--farmish-border)"
+                stroke="var(--loam-border)"
                 strokeWidth="1"
                 x1={PAD_LEFT}
                 x2={W - PAD_RIGHT}
@@ -178,7 +178,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
                 y2={yAt(tick)}
               />
               <text
-                fill="var(--farmish-muted)"
+                fill="var(--loam-muted)"
                 fontSize="10"
                 style={{ fontVariantNumeric: "tabular-nums" }}
                 textAnchor="end"
@@ -192,7 +192,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
 
           {[...xLabelIndices].sort((a, b) => a - b).map((index) => (
             <text
-              fill="var(--farmish-muted)"
+              fill="var(--loam-muted)"
               fontSize="10"
               key={index}
               textAnchor="middle"
@@ -205,7 +205,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
 
           {activeIndex !== null ? (
             <line
-              stroke="var(--farmish-muted)"
+              stroke="var(--loam-muted)"
               strokeOpacity="0.55"
               strokeWidth="1"
               x1={xAt(activeIndex)}
@@ -277,7 +277,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
                       cy={endPoint[1]}
                       fill={entry.color}
                       r="4.5"
-                      stroke="var(--farmish-panel)"
+                      stroke="var(--loam-panel)"
                       strokeWidth="2"
                     />
                   ) : null}

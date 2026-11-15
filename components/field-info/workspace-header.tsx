@@ -12,7 +12,7 @@ export function WorkspaceHeader({ field }: WorkspaceHeaderProps) {
     <header className="field-workspace-header">
       <div className="field-workspace-brand">
         <Link className="field-workspace-brand-name" href="/">
-          Farmish
+          loam
         </Link>
         <span className="field-workspace-tagline">The dirt on your dirt.</span>
       </div>

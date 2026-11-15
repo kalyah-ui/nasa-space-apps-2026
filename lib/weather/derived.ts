@@ -115,7 +115,7 @@ export function drynessIndex(
   return actual / expected;
 }
 
-/** Plain-language bucket for a dryness index value, in the Farmish voice. */
+/** Plain-language bucket for a dryness index value, in the loam voice. */
 export function drynessLabel(index: number): string {
   if (index < 0.4) {
     return "Bone dry";

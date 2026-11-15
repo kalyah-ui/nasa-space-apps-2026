@@ -7,7 +7,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <aside className="sidebar">
         <div className="sidebar-top">
           <div>
-            <p className="brand">Farmish</p>
+            <p className="brand">loam</p>
             <p className="brand-note">The dirt on your dirt.</p>
           </div>
           <ThemeToggle />

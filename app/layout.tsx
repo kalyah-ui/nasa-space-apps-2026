@@ -4,7 +4,7 @@ import "./globals.css";
 import "../styles/glass.css";
 
 export const metadata: Metadata = {
-  title: "Farmish | The dirt on your dirt.",
+  title: "loam | The dirt on your dirt.",
   description: "The dirt on your dirt. Earth observation insights for resilient farming decisions.",
 };
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const themeInitScript = `(function () {
   var theme = "dark";
   try {
-    var stored = localStorage.getItem("farmish-theme");
+    var stored = localStorage.getItem("loam-theme");
     if (stored === "light" || stored === "dark") {
       theme = stored;
     } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {

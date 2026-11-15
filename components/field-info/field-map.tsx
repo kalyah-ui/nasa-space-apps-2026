@@ -343,7 +343,9 @@ export function FieldMap() {
             return;
           }
 
-          const feature = event.features?.[0];
+          const feature = event.features?.[0] as
+            | ({ id?: string | number; properties?: Record<string, unknown> } | undefined)
+            | undefined;
           if (feature?.id === undefined) {
             return;
           }

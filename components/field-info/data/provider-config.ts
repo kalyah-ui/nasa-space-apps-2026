@@ -1,3 +1,4 @@
+import { ApiProvider } from "./api-provider";
 import { MockProvider } from "./mock-provider";
 import type { DataProvider } from "./types";
 
@@ -9,9 +10,7 @@ function createDataProvider(): DataProvider {
   }
 
   if (providerName === "api") {
-    throw new Error(
-      'NEXT_PUBLIC_DATA_PROVIDER is "api", but ApiProvider is not implemented yet. Use "mock" until the API-provider step.',
-    );
+    return new ApiProvider();
   }
 
   throw new Error(

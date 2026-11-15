@@ -1,6 +1,6 @@
 "use client";
 
-const STORAGE_KEY = "farmish-theme";
+const STORAGE_KEY = "loam-theme";
 
 /**
  * Sun/moon theme switch. Both icons are always rendered; CSS shows the one
