@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FieldSnapshot } from "@/components/landing/field-snapshot";
 import { SiteShell } from "@/components/layout/site-shell";
 
 const workflows = [
@@ -30,6 +31,8 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      <FieldSnapshot />
 
       <div aria-label="loam workflows" className="workflow-list">
         {workflows.map((workflow) => (

@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EstimateBadge } from "@/components/ui/estimate-badge";
+import { KpiTile } from "@/components/ui/kpi-tile";
 import { ClimatePanel } from "./charts/climate-panel";
 import { ForecastPanel } from "./charts/forecast-panel";
 import { SoilWaterPanel } from "./charts/soil-water-panel";
@@ -32,35 +33,6 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
-
-type KpiTileProps = {
-  label: string;
-  value: string | null;
-  unit?: string;
-  note?: string;
-  loading?: boolean;
-  estimateTitle?: string;
-};
-
-function KpiTile({ label, value, unit, note, loading, estimateTitle }: KpiTileProps) {
-  return (
-    <div className="kpi-tile">
-      <span className="kpi-tile-label">
-        {label}
-        {estimateTitle ? <EstimateBadge title={estimateTitle} /> : null}
-      </span>
-      {loading ? (
-        <span aria-hidden="true" className="skeleton kpi-tile-skeleton" />
-      ) : (
-        <span className="kpi-tile-value">
-          {value ?? "—"}
-          {value !== null && unit ? <span className="kpi-tile-unit"> {unit}</span> : null}
-        </span>
-      )}
-      {note ? <span className="kpi-tile-note">{note}</span> : null}
-    </div>
-  );
-}
 
 function buildVerdict(args: {
   rain30: number | null;
