@@ -605,6 +605,36 @@ h1 {
   text-transform: uppercase;
 }
 
+.discovery-map-note.is-error {
+  z-index: 2;
+  border-color: var(--loam-danger-border);
+  color: var(--loam-danger-ink);
+  text-transform: none;
+}
+
+/* ---- Live Mapbox Discovery map ----------------------------------------- */
+
+.discovery-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Inside a Mapbox marker the wrapper owns positioning, so the pill drops the
+   schematic map's absolute placement and centering transform. */
+.discovery-map-marker .discovery-map-pill {
+  position: static;
+  transform: none;
+}
+
+.discovery-map-marker .discovery-map-pill:hover,
+.discovery-map-marker .discovery-map-pill.is-highlighted {
+  transform: scale(1.09);
+}
+
+.discovery-map-marker .discovery-map-pill.is-selected {
+  transform: none;
+}
+
 /* ---- Listing detail panel (solid surface over the map column) ---------- */
 
 .listing-detail {

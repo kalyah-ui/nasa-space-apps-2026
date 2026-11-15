@@ -2,7 +2,6 @@
 
 import { EstimateBadge } from "@/components/ui/estimate-badge";
 import type { DemoListing } from "./listings/demo-listings";
-import { LAND_SCORE_NOTE, landScore } from "./listings/land-score";
 
 type ListingCardProps = {
   listing: DemoListing;
@@ -25,8 +24,6 @@ export function ListingCard({
   onSelect,
   onHover,
 }: ListingCardProps) {
-  const score = landScore(listing);
-
   return (
     <button
       aria-pressed={isSelected}
@@ -44,15 +41,11 @@ export function ListingCard({
         <span className="listing-card-name">{listing.name}</span>
         <EstimateBadge kind="demo" />
       </span>
-      <span className="listing-card-price">{priceFormat.format(listing.priceUsd)}</span>
+      <span className="listing-card-price">{priceFormat.format(listing.priceCad)}</span>
       <span className="listing-card-meta">
         <span>{listing.acres.toLocaleString("en-US")} ac</span>
         <span aria-hidden="true">·</span>
-        <span>{priceFormat.format(Math.round(listing.priceUsd / listing.acres))}/ac</span>
-        <span aria-hidden="true">·</span>
-        <span className="listing-card-score">
-          Score {score} <EstimateBadge title={LAND_SCORE_NOTE} />
-        </span>
+        <span>{priceFormat.format(Math.round(listing.priceCad / listing.acres))}/ac</span>
       </span>
       <span className="listing-card-description">{listing.description}</span>
     </button>

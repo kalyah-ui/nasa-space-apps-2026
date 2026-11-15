@@ -23,7 +23,6 @@ import {
   SOURCE_ATTRIBUTION,
 } from "@/lib/weather/types";
 import type { DemoListing } from "./listings/demo-listings";
-import { LAND_SCORE_NOTE, landScore } from "./listings/land-score";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -64,21 +63,12 @@ function KpiTile({ label, value, unit, note, loading, estimateTitle }: KpiTilePr
 }
 
 function buildVerdict(args: {
-  score: number;
   rain30: number | null;
   dryness: number | null;
   frostIn: number | null | undefined;
   soilMoisture: number | null;
 }): string {
   const sentences: string[] = [];
-
-  if (args.score >= 70) {
-    sentences.push("Good dirt, by our demo math.");
-  } else if (args.score >= 45) {
-    sentences.push("Fair dirt, by our demo math.");
-  } else {
-    sentences.push("Tough dirt, by our demo math.");
-  }
 
   if (args.dryness !== null && args.rain30 !== null) {
     sentences.push(
@@ -145,7 +135,6 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
       ?.focus();
   };
 
-  const score = landScore(listing);
   const historyDays = history.data?.days ?? [];
   const rain30 = history.status === "ready" ? rainfallTotal(historyDays) : null;
   const temp30 = history.status === "ready" ? averageTemperature(historyDays) : null;
@@ -160,6 +149,7 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
 
   const anyReady =
     history.status === "ready" || normals.status === "ready" || forecast.status === "ready";
+  const verdict = anyReady ? buildVerdict({ rain30, dryness, frostIn, soilMoisture }) : "";
   const lastUpdated = [history.data?.fetchedAt, normals.data?.fetchedAt, forecast.data?.fetchedAt]
     .filter((timestamp): timestamp is string => Boolean(timestamp))
     .sort()
@@ -250,17 +240,9 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
             />
           </div>
 
-          <div className="land-score-row">
-            <span className="kpi-tile-label">
-              Land score <EstimateBadge title={LAND_SCORE_NOTE} />
-            </span>
-            <span className="land-score-value">{score}</span>
-            <span className="kpi-tile-note">/ 100, demo heuristic</span>
-          </div>
-
-          {anyReady ? (
+          {verdict ? (
             <blockquote className="listing-verdict">
-              {buildVerdict({ score, rain30, dryness, frostIn, soilMoisture })}
+              {verdict}
               <footer className="listing-verdict-tag">
                 Rule-based read, no AI involved <EstimateBadge />
               </footer>
@@ -268,7 +250,7 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
           ) : null}
 
           <p className="listing-detail-price-row">
-            Asking <span className="listing-detail-price">${listing.priceUsd.toLocaleString("en-US")}</span>{" "}
+            Asking <span className="listing-detail-price">${listing.priceCad.toLocaleString("en-US")}</span>{" "}
             · {listing.description}
           </p>
         </div>
