@@ -5,8 +5,9 @@ import mapboxgl, {
   type MapboxErrorEvent,
 } from "mapbox-gl";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { FIELD_BOUNDARY_URLS, SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
 
-const plotGeoJsonUrls = ["/data/PlotA.geojson", "/data/PlotB.geojson"];
+const plotGeoJsonUrls = FIELD_BOUNDARY_URLS;
 const plotSourceId = "farm-plots";
 const plotFillLayerId = "farm-plots-fill";
 const plotOutlineLayerId = "farm-plots-outline";
@@ -362,7 +363,9 @@ export function FieldMap() {
             { source: plotSourceId, id: feature.id },
             { selected: true },
           );
-          setSelectedPlotName(String(feature.properties?.name ?? "Unnamed plot"));
+          const fieldName = String(feature.properties?.name ?? "Unnamed plot");
+          setSelectedPlotName(fieldName);
+          window.localStorage.setItem(SELECTED_FIELD_STORAGE_KEY, fieldName);
         });
 
         map.on("mouseenter", plotFillLayerId, () => {

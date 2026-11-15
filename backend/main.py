@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routes.data import router as data_router
+from backend.routes.crops import router as crops_router
+from backend.routes.terrain import router as terrain_router
 
 app = FastAPI(
     title="loam API",
@@ -22,11 +24,13 @@ allowed_origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["Accept", "Content-Type"],
 )
 
 app.include_router(data_router, prefix="/api/data", tags=["data"])
+app.include_router(terrain_router, prefix="/api/data", tags=["data"])
+app.include_router(crops_router, prefix="/api/crops", tags=["crops"])
 
 
 @app.get("/health", tags=["health"])

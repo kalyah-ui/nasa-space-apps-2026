@@ -1,13 +1,15 @@
 import { SiteShell } from "@/components/layout/site-shell";
-import { SectionPlaceholder } from "@/components/ui/section-placeholder";
+import { RotationPlanner } from "./rotation-planner";
 
 export default function RotationPlannerPage() {
   return (
     <SiteShell>
       <p className="eyebrow">Compare strategies</p>
       <h1>Rotation Planner</h1>
-      <p className="intro">Compare crop rotation options across water use, soil impact, resilience, and market viability.</p>
-      <SectionPlaceholder title="Rotation scenarios" description="Current, profit-focused, water-conservation, and soil-regeneration scenarios will be added here." />
+      <p className="intro">
+        Review current field conditions and compare rotation strategies for soil health, water use, resilience, and market potential.
+      </p>
+      <RotationPlanner />
     </SiteShell>
   );
 }

@@ -42,6 +42,23 @@ uvicorn backend.main:app --reload
 
 The API health check is available at http://localhost:8000/health.
 
+Crop classification can optionally use Gemini to suggest a botanical family and
+relative crop-water-demand category. Configure `GEMINI_API_KEY` in the backend
+process environment only; never put it in `app/.env.local` or a
+`NEXT_PUBLIC_` variable. `GEMINI_MODEL` optionally selects the model and
+defaults to `gemini-2.5-flash`. Without a key, or if the Gemini request fails,
+the API uses its local crop reference and leaves unknown crops available for
+manual family selection. These water-demand categories are broad crop
+references, not field irrigation-volume predictions.
+
+For local development, export the key in the shell before starting FastAPI:
+
+```bash
+export GEMINI_API_KEY="your-key"
+export GEMINI_MODEL="gemini-2.5-flash"
+uvicorn backend.main:app --reload
+```
+
 ## Accessing shared Earth-observation data
 
 After datasets have been uploaded, team members can browse or download them

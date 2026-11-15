@@ -31,6 +31,123 @@ export interface CropRecommendationResult {
   unscoredCropIds: string[];
 }
 
+export interface RotationCropInput {
+  name: string;
+  family: string;
+}
+
+export interface PlannedRotationCrop extends RotationCropInput {
+  year: number;
+  isCurrent: boolean;
+}
+
+export const cropFamilyOptions = [
+  { value: "Poaceae", label: "Grass family (Poaceae)" },
+  { value: "Fabaceae", label: "Legume family (Fabaceae)" },
+  { value: "Brassicaceae", label: "Mustard family (Brassicaceae)" },
+  { value: "Solanaceae", label: "Nightshade family (Solanaceae)" },
+  { value: "Asteraceae", label: "Sunflower family (Asteraceae)" },
+  { value: "Amaranthaceae", label: "Amaranth family (Amaranthaceae)" },
+  { value: "Cucurbitaceae", label: "Gourd family (Cucurbitaceae)" },
+  { value: "Apiaceae", label: "Carrot family (Apiaceae)" },
+  { value: "Amaryllidaceae", label: "Onion family (Amaryllidaceae)" },
+  { value: "Linaceae", label: "Flax family (Linaceae)" },
+  { value: "Polygonaceae", label: "Buckwheat family (Polygonaceae)" },
+  { value: "Rosaceae", label: "Rose family (Rosaceae)" },
+  { value: "Cannabaceae", label: "Hemp family (Cannabaceae)" },
+  { value: "Other", label: "Other / not listed" },
+] as const;
+
+const cropNameFamilies: Record<string, string> = {
+  corn: "Poaceae",
+  maize: "Poaceae",
+  "sweet corn": "Poaceae",
+  wheat: "Poaceae",
+  barley: "Poaceae",
+  oat: "Poaceae",
+  oats: "Poaceae",
+  rye: "Poaceae",
+  rice: "Poaceae",
+  sorghum: "Poaceae",
+  millet: "Poaceae",
+  triticale: "Poaceae",
+  soybean: "Fabaceae",
+  soybeans: "Fabaceae",
+  soy: "Fabaceae",
+  bean: "Fabaceae",
+  beans: "Fabaceae",
+  "dry bean": "Fabaceae",
+  pea: "Fabaceae",
+  peas: "Fabaceae",
+  lentil: "Fabaceae",
+  lentils: "Fabaceae",
+  chickpea: "Fabaceae",
+  chickpeas: "Fabaceae",
+  alfalfa: "Fabaceae",
+  clover: "Fabaceae",
+  canola: "Brassicaceae",
+  rapeseed: "Brassicaceae",
+  mustard: "Brassicaceae",
+  cabbage: "Brassicaceae",
+  broccoli: "Brassicaceae",
+  cauliflower: "Brassicaceae",
+  kale: "Brassicaceae",
+  radish: "Brassicaceae",
+  turnip: "Brassicaceae",
+  potato: "Solanaceae",
+  tomato: "Solanaceae",
+  pepper: "Solanaceae",
+  eggplant: "Solanaceae",
+  sunflower: "Asteraceae",
+  lettuce: "Asteraceae",
+  chicory: "Asteraceae",
+  "sugar beet": "Amaranthaceae",
+  beet: "Amaranthaceae",
+  spinach: "Amaranthaceae",
+  quinoa: "Amaranthaceae",
+  cucumber: "Cucurbitaceae",
+  squash: "Cucurbitaceae",
+  pumpkin: "Cucurbitaceae",
+  pumpkins: "Cucurbitaceae",
+  melon: "Cucurbitaceae",
+  watermelon: "Cucurbitaceae",
+  carrot: "Apiaceae",
+  celery: "Apiaceae",
+  parsley: "Apiaceae",
+  onion: "Amaryllidaceae",
+  garlic: "Amaryllidaceae",
+  leek: "Amaryllidaceae",
+  flax: "Linaceae",
+  linseed: "Linaceae",
+  buckwheat: "Polygonaceae",
+  strawberry: "Rosaceae",
+  peach: "Rosaceae",
+  peaches: "Rosaceae",
+  apple: "Rosaceae",
+  hemp: "Cannabaceae",
+};
+
+export function inferCropFamily(cropName: string): string | null {
+  const normalizedName = cropName.trim().toLowerCase().replace(/\s+/g, " ");
+  const directMatch = cropNameFamilies[normalizedName];
+  if (directMatch) return directMatch;
+
+  const singularCandidates = normalizedName.endsWith("ies")
+    ? [`${normalizedName.slice(0, -3)}y`]
+    : normalizedName.endsWith("es")
+      ? [normalizedName.slice(0, -2), normalizedName.slice(0, -1)]
+      : normalizedName.endsWith("s")
+        ? [normalizedName.slice(0, -1)]
+        : [];
+
+  for (const candidate of singularCandidates) {
+    const family = cropNameFamilies[candidate];
+    if (family) return family;
+  }
+
+  return null;
+}
+
 type ScoredCropCandidate = CropCandidate & {
   suitability: CompositeScore & { score: number };
 };
@@ -123,4 +240,56 @@ export function recommendCropRotations(
         a.cropIds.join("|").localeCompare(b.cropIds.join("|")),
     )
     .slice(0, limit);
+}
+
+export function buildCropRotationPlan(
+  currentCrop: RotationCropInput,
+  desiredCrops: RotationCropInput[],
+  years: number,
+): PlannedRotationCrop[] | null {
+  if (!Number.isInteger(years) || years < 2 || years > 12) {
+    throw new RangeError("Rotation length must be an integer from two to twelve years.");
+  }
+
+  const currentName = currentCrop.name.trim();
+  const currentFamily = currentCrop.family.trim();
+  if (!currentName || !currentFamily) {
+    throw new RangeError("Enter the current crop and its family.");
+  }
+
+  const candidates = desiredCrops.map((crop) => ({
+    name: crop.name.trim(),
+    family: crop.family.trim(),
+  }));
+  if (candidates.length === 0 || candidates.some((crop) => !crop.name || !crop.family)) {
+    throw new RangeError("Enter a name and family for each crop you want to plant.");
+  }
+
+  const sequence: RotationCropInput[] = [];
+  const usedCandidates = new Set<number>();
+
+  function fillSequence(previousFamily: string, remainingYears: number): boolean {
+    if (remainingYears === 0) return true;
+
+    for (const allowRepeating of [false, true]) {
+      for (const [candidateIndex, candidate] of candidates.entries()) {
+        if (familyKey(candidate.family) === previousFamily) continue;
+        if (!allowRepeating && usedCandidates.has(candidateIndex)) continue;
+        sequence.push(candidate);
+        const wasUsed = usedCandidates.has(candidateIndex);
+        usedCandidates.add(candidateIndex);
+        if (fillSequence(familyKey(candidate.family), remainingYears - 1)) return true;
+        sequence.pop();
+        if (!wasUsed) usedCandidates.delete(candidateIndex);
+      }
+    }
+    return false;
+  }
+
+  if (!fillSequence(familyKey(currentFamily), years - 1)) return null;
+
+  return [
+    { year: 1, name: currentName, family: currentFamily, isCurrent: true },
+    ...sequence.map((crop, index) => ({ ...crop, year: index + 2, isCurrent: false })),
+  ];
 }

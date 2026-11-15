@@ -1,0 +1,176 @@
+import unittest
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+from pydantic import ValidationError
+from rasterio.io import MemoryFile
+from rasterio.transform import from_origin
+from rasterio.warp import transform_bounds
+from shapely.geometry import Polygon
+
+from backend.models.terrain import FieldTerrainRequest
+from backend.services.terrain import (
+    build_srtm_object_name,
+    get_terrain_sample,
+    _nullable_int,
+    sample_crop_inventory_dataset,
+    sample_srtm_geotiff,
+)
+
+
+FIELD_GEOMETRY = {
+    "type": "Polygon",
+    "coordinates": [[
+        [-76.9999, 45.9999],
+        [-76.998, 45.9999],
+        [-76.998, 45.998],
+        [-76.9999, 45.998],
+        [-76.9999, 45.9999],
+    ]],
+}
+
+
+def make_geotiff() -> bytes:
+    raster = np.fromfunction(lambda row, column: 100 + row + column, (10, 10), dtype=int)
+    with MemoryFile() as memory_file:
+        with memory_file.open(
+            driver="GTiff",
+            width=10,
+            height=10,
+            count=1,
+            dtype="int16",
+            crs="EPSG:4326",
+            transform=from_origin(-77, 46, 1 / 3600, 1 / 3600),
+            nodata=-9999,
+        ) as dataset:
+            dataset.write(raster.astype("int16"), 1)
+        return memory_file.read()
+
+
+def make_crop_inventory_geotiff() -> MemoryFile:
+    min_longitude, min_latitude, max_longitude, max_latitude = Polygon(
+        FIELD_GEOMETRY["coordinates"][0]
+    ).bounds
+    left, bottom, right, top = transform_bounds(
+        "EPSG:4326",
+        "EPSG:10820",
+        min_longitude,
+        min_latitude,
+        max_longitude,
+        max_latitude,
+    )
+    margin = 100
+    raster = np.resize(np.array([122, 158, 220], dtype=np.uint8), (20, 20))
+    memory_file = MemoryFile()
+    with memory_file.open(
+        driver="GTiff",
+        width=20,
+        height=20,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:10820",
+        transform=from_origin(
+            left - margin,
+            top + margin,
+            (right - left + margin * 2) / 20,
+            (top - bottom + margin * 2) / 20,
+        ),
+    ) as dataset:
+        dataset.write(raster, 1)
+    return memory_file
+
+
+class FakeBlob:
+    updated = datetime(2026, 11, 15, tzinfo=timezone.utc)
+
+    def __init__(self, content: bytes) -> None:
+        self.content = content
+        self.size = len(content)
+
+    def reload(self) -> None:
+        return None
+
+    def download_as_bytes(self) -> bytes:
+        return self.content
+
+    def download_to_filename(self, filename: str) -> None:
+        Path(filename).write_bytes(self.content)
+
+
+class FakeBucket:
+    def __init__(self, blob: FakeBlob) -> None:
+        self._blob = blob
+        self.requested_name: str | None = None
+
+    def blob(self, name: str) -> FakeBlob:
+        self.requested_name = name
+        return self._blob
+
+
+class TerrainTests(unittest.TestCase):
+    def test_builds_correct_srtm_geotiff_tile_name_for_field(self) -> None:
+        object_name = build_srtm_object_name({
+            "type": "Polygon",
+            "coordinates": [[
+                [-76.31, 45.31], [-76.30, 45.31], [-76.30, 45.30],
+                [-76.31, 45.30], [-76.31, 45.31],
+            ]],
+        })
+
+        self.assertEqual(
+            object_name,
+            "raw/srtm-global-1-arc-second:v003:ontario/n45_w077_1arc_v3.tif",
+        )
+
+    def test_samples_geotiff_cells_inside_field_and_derives_slope(self) -> None:
+        mean_elevation, mean_slope, sample_count = sample_srtm_geotiff(make_geotiff(), FIELD_GEOMETRY)
+
+        self.assertGreater(mean_elevation, 100)
+        self.assertIsNotNone(mean_slope)
+        self.assertGreater(mean_slope, 0)
+        self.assertGreater(sample_count, 0)
+
+    def test_extracts_crop_codes_after_reprojecting_field_into_aci_crs(self) -> None:
+        memory_file = make_crop_inventory_geotiff()
+        try:
+            with memory_file.open() as dataset:
+                classes, sample_count = sample_crop_inventory_dataset(dataset, FIELD_GEOMETRY)
+        finally:
+            memory_file.close()
+
+        self.assertGreater(sample_count, 0)
+        self.assertEqual({item.class_code for item in classes}, {122, 158, 220})
+        self.assertAlmostEqual(sum(item.field_share_pct for item in classes), 100, delta=0.02)
+
+    @patch("backend.services.terrain.get_bucket")
+    def test_gcs_sample_includes_object_name_and_update_time(self, get_bucket_mock) -> None:
+        bucket = FakeBucket(FakeBlob(make_geotiff()))
+        get_bucket_mock.return_value = bucket
+        request = FieldTerrainRequest(field_id="PlotA", field_name="PlotA", geometry=FIELD_GEOMETRY)
+
+        with tempfile.TemporaryDirectory() as cache_dir:
+            with patch("backend.services.terrain.GCS_CACHE_DIR", Path(cache_dir)):
+                result = get_terrain_sample(request)
+
+        self.assertEqual(result.field_id, "PlotA")
+        self.assertEqual(result.source_updated_at, bucket._blob.updated)
+        self.assertEqual(result.source_object, "raw/srtm-global-1-arc-second:v003:ontario/n45_w077_1arc_v3.tif")
+        self.assertEqual(
+            {source.source_id for source in result.sources},
+            {"terrain", "soil", "crop_inventory", "water", "climate"},
+        )
+
+    def test_rejects_invalid_or_unbounded_field_geometries(self) -> None:
+        with self.assertRaises(ValidationError):
+            FieldTerrainRequest(field_id="../private", field_name="Bad field", geometry=FIELD_GEOMETRY)
+
+    def test_soil_missing_value_sentinel_is_not_reported_as_a_measurement(self) -> None:
+        self.assertIsNone(_nullable_int(-9))
+        self.assertEqual(_nullable_int(68), 68)
+
+
+if __name__ == "__main__":
+    unittest.main()

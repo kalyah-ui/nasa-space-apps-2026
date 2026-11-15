@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { CompositeScore } from "../scoring";
-import { rankCropRecommendations, recommendCropRotations } from "./index";
+import {
+  buildCropRotationPlan,
+  inferCropFamily,
+  rankCropRecommendations,
+  recommendCropRotations,
+} from "./index";
 
 function suitability(score: number | null, coveragePct = 100): CompositeScore {
   return {
@@ -68,4 +73,66 @@ test("a rotation cannot be recommended without distinct crop families", () => {
   ];
 
   assert.deepEqual(recommendCropRotations(sameFamilyCrops, 2), []);
+});
+
+test("user-input rotation plan starts with the current crop and alternates families", () => {
+  const plan = buildCropRotationPlan(
+    { name: "Corn", family: "Cereal / grass" },
+    [
+      { name: "Soybean", family: "Legume" },
+      { name: "Wheat", family: "Cereal / grass" },
+      { name: "Canola", family: "Brassica / oilseed" },
+    ],
+    4,
+  );
+
+  assert.ok(plan);
+  assert.deepEqual(plan.map((crop) => crop.name), ["Corn", "Soybean", "Wheat", "Canola"]);
+  assert.equal(plan[0].isCurrent, true);
+  for (let index = 1; index < plan.length; index += 1) {
+    assert.notEqual(plan[index].family.toLowerCase(), plan[index - 1].family.toLowerCase());
+  }
+});
+
+test("user-input rotation plan returns null when crop families cannot alternate", () => {
+  const plan = buildCropRotationPlan(
+    { name: "Corn", family: "Cereal / grass" },
+    [{ name: "Wheat", family: "Cereal / grass" }],
+    3,
+  );
+
+  assert.equal(plan, null);
+});
+
+test("user-input rotation plan rejects missing crop names or families", () => {
+  assert.throws(
+    () => buildCropRotationPlan({ name: "", family: "Cereal / grass" }, [], 3),
+    RangeError,
+  );
+  assert.throws(
+    () => buildCropRotationPlan(
+      { name: "Corn", family: "Cereal / grass" },
+      [{ name: "Soybean", family: "" }],
+      3,
+    ),
+    RangeError,
+  );
+});
+
+test("recognized crop names and common aliases infer their botanical family", () => {
+  assert.equal(inferCropFamily("Corn"), "Poaceae");
+  assert.equal(inferCropFamily("  MAIZE  "), "Poaceae");
+  assert.equal(inferCropFamily("Soybean"), "Fabaceae");
+  assert.equal(inferCropFamily("Canola"), "Brassicaceae");
+});
+
+test("plural crop names infer the family of their singular crop name", () => {
+  assert.equal(inferCropFamily("strawberries"), "Rosaceae");
+  assert.equal(inferCropFamily("tomatoes"), "Solanaceae");
+  assert.equal(inferCropFamily("potatoes"), "Solanaceae");
+  assert.equal(inferCropFamily("dry beans"), "Fabaceae");
+});
+
+test("unrecognized crop names require the user to select a family", () => {
+  assert.equal(inferCropFamily("Specialty crop"), null);
 });

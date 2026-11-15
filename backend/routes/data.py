@@ -9,6 +9,7 @@ from google.api_core.exceptions import Forbidden, GoogleAPICallError, NotFound
 from google.auth.exceptions import DefaultCredentialsError
 
 from backend.models.data import GCSObjectMetadata, GCSObjectPage
+from backend.services.crop_budgets import load_crop_budgets
 from backend.services.gcs import get_allowed_prefixes, get_bucket, get_bucket_name
 
 router = APIRouter()
@@ -89,6 +90,14 @@ def list_objects(
             objects=objects,
             next_page_token=iterator.next_page_token,
         )
+    except Exception as error:
+        raise _translate_gcs_error(error) from error
+
+
+@router.get("/crop-budgets")
+def crop_budgets() -> dict[str, object]:
+    try:
+        return {"budgets": load_crop_budgets()}
     except Exception as error:
         raise _translate_gcs_error(error) from error
 
