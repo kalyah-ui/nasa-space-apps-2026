@@ -1,4 +1,4 @@
-import type { CompositeScore } from "../scoring";
+import type { CompositeScore, ScoredComponent } from "../scoring";
 
 export interface CropCandidate {
   id: string;
@@ -15,6 +15,7 @@ export interface CropRecommendation {
   score: number;
   coveragePct: number;
   missingComponents: string[];
+  components: ScoredComponent[];
 }
 
 export interface RotationRecommendation {
@@ -60,6 +61,7 @@ export function rankCropRecommendations(crops: CropCandidate[]): CropRecommendat
       score: crop.suitability.score,
       coveragePct: crop.suitability.coveragePct,
       missingComponents: crop.suitability.missingComponents,
+      components: crop.suitability.components,
     })),
     unscoredCropIds: crops
       .filter((crop) => crop.suitability.score === null)

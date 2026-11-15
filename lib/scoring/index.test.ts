@@ -26,13 +26,15 @@ test("all-missing components produce no score rather than a zero score", () => {
 
 test("farm scores require normalized inputs and use explicit weights", () => {
   const result = calculateFarmScore({
-    soil: { score: 80, weight: 2 },
+    soil: { score: 80, weight: 2, source: "SSURGO", sourceDate: "2026-11-01" },
     water: { score: 60, weight: 1 },
     flood: { score: 90, weight: 1 },
     climate: { score: 70, weight: 2 },
   });
 
   assert.equal(result.score, 75);
+  assert.equal(result.components[0].source, "SSURGO");
+  assert.equal(result.components[0].sourceDate, "2026-11-01");
 });
 
 test("invalid component scores are rejected", () => {

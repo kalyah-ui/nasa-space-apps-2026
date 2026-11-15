@@ -30,6 +30,25 @@ test("crop ranking keeps coverage and returns unscored crops separately", () => 
   assert.deepEqual(result.unscoredCropIds, ["unknown"]);
 });
 
+test("crop recommendations preserve component provenance for explanation", () => {
+  const component = {
+    key: "soil",
+    score: 82,
+    weight: 2,
+    coveragePct: 90,
+    source: "SSURGO",
+    sourceDate: "2026-11-01",
+  };
+  const result = rankCropRecommendations([
+    {
+      ...crops[0],
+      suitability: { ...suitability(82, 90), components: [component] },
+    },
+  ]);
+
+  assert.deepEqual(result.recommendations[0].components, [component]);
+});
+
 test("rotation suggestions avoid consecutive crops from the same family", () => {
   const rotations = recommendCropRotations(crops, 3, 5);
 

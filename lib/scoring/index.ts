@@ -5,6 +5,7 @@ export interface ScoreComponentInput {
   weight: number;
   coveragePct?: number;
   source?: string;
+  sourceDate?: string;
 }
 
 export interface WeightedScoreComponent extends ScoreComponentInput {

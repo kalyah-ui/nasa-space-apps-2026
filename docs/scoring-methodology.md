@@ -18,7 +18,7 @@ Every component has a score, a relative weight, optional data coverage, and an o
 | Future Farm | The same dimensions evaluated under a named future scenario | Requires climate projections and documented assumptions. Historical or current-condition datasets alone cannot support a future claim. |
 | Crop rotation | Crop suitability, crop-family labels, and crop history from CDL; optionally yields from NASS and market context from AMS | The initial recommender is a heuristic, not a nutrient-cycle, pest, yield, or profit model. |
 
-Use the finest-resolution source available for the parcel, and preserve source, date, and coverage when preparing component scores. Coarse or incomplete inputs should reduce reported coverage, not silently produce false precision.
+Use the finest-resolution source available for the parcel, and preserve source, date, and coverage when preparing component scores. The scoring input uses `sourceDate` for the source observation or product date; recommendations retain the component breakdown so these inputs remain explainable. Coarse or incomplete inputs should reduce reported coverage, not silently produce false precision.
 
 ## Initial implementation
 
