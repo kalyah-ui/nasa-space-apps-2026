@@ -229,6 +229,7 @@ Responsibilities:
 - Demo script
 - Competition submission
 - Video editing
+- Create slides
 
 Owns:
 
