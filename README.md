@@ -29,6 +29,114 @@ npm run dev
 
 Open http://localhost:3000.
 
+#### Private SRTM elevation overlay
+
+The field map reads SRTM tiles from the private
+`nasa_spaceapps_2026_loam` bucket through a server-only Next.js API route.
+Authenticate locally with Application Default Credentials before starting the
+app:
+
+```bash
+gcloud auth application-default login
+npm install
+npm run dev
+```
+
+The authenticated account needs read access to the bucket. The defaults can be
+overridden server-side with `GOOGLE_CLOUD_PROJECT`, `SRTM_GCS_BUCKET`, and
+`SRTM_GCS_PREFIX`; do not use `NEXT_PUBLIC_` variables for credentials or
+bucket access.
+
+#### Landsat true colour and NDVI
+
+The original objects under
+`raw/landsat-surface-reflectance-collection-2-level-2-ontario/` were inspected
+and found to be SRTM `.hgt.zip` elevation tiles, not Landsat imagery. A bounded
+sample from the real USGS Landsat 8 Collection 2 Level-2 scene
+`LC08_L2SP_016028_20260923_02_T1` was therefore imported for the current field
+area. Its acquisition date is September 23, 2026. The private sample includes
+the original integer B2, B3, B4, B5, `QA_PIXEL`, and `QA_RADSAT` values plus a
+provenance manifest.
+
+The configured API data provider first uses that sample when it completely
+covers the selected field. For any other selected polygon, the server searches
+the Microsoft Planetary Computer `landsat-c2-l2` STAC collection for recent
+Landsat 8 or 9 L2SP scenes, signs the required COG assets on the server, and
+reads only the raster window around the field.
+
+The server applies the Collection 2 surface-reflectance scale `0.0000275` and
+offset `-0.2` exactly once. It masks fill, dilated cloud, cirrus, cloud, cloud
+shadow, snow, and radiometrically saturated pixels before producing true colour
+or calculating NDVI as `(NIR - red) / (NIR + red)`. Browser code receives only
+a clipped PNG and summary metadata; it never receives GCS credentials, private
+bucket URLs, or Planetary Computer signed asset URLs.
+
+To recreate the private sample with Application Default Credentials and bucket
+write access:
+
+```bash
+gcloud auth application-default login
+npm run import:landsat-sample
+```
+
+To test the map:
+
+1. Start the app with `npm run dev` and open `http://localhost:3000/field-info`.
+2. Click inside an official field polygon.
+3. Select **Satellite image** and verify true colour, image date, average NDVI,
+   clear/QA-masked percentages, source, and scene ID appear.
+4. Select **NDVI** and verify the clipped overlay and `-1` to `1` legend appear.
+5. To exercise the fallback without changing stored fields, POST an Ontario
+   polygon outside the sample crop to `/api/landsat`, for example:
+
+   ```bash
+   curl -X POST http://localhost:3000/api/landsat \
+     -H "Content-Type: application/json" \
+     -d '{"layer":"ndvi","geometry":{"type":"Polygon","coordinates":[[[-80.01,43.20],[-79.995,43.20],[-79.995,43.21],[-80.01,43.21],[-80.01,43.20]]]}}'
+   ```
+
+   The response should report `"provider":"planetary-computer"`. If no scene
+   has at least 20% clear field pixels, the API and map show a too-cloudy
+   message. A field too small for a usable 30 m pixel receives a specific
+   field-too-small message.
+
+Server-side overrides are `LANDSAT_GCS_BUCKET` and `LANDSAT_GCS_PREFIX`.
+
+#### Field boundaries
+
+Field boundaries are persisted by the Next.js server as GeoJSON in
+`data/fields/fields.geojson`. On first run, the existing Plot A and Plot B files
+are imported automatically. The map supports drawing, renaming, vertex editing,
+deleting, and uploading `.geojson`, `.json`, or `.kml` polygon files.
+
+The current local field collection is extracted from Agriculture and Agri-Food
+Canada's 2023 Ontario OneSoil GeoPackage. The complete Ontario source contains
+678,096 polygons and is too large to send to the browser as one GeoJSON file,
+so the checked-in extractor creates a bounded collection around the demo map.
+After downloading `on_oneSoil_field_boundaries_2023.gpkg` into `data/fields/`,
+regenerate the collection with:
+
+```bash
+node scripts/extract-ontario-fields.mjs
+```
+
+The extraction defaults to a 10 km window centered near Arnprior. Override it
+with `ONTARIO_FIELDS_CENTER_LON`, `ONTARIO_FIELDS_CENTER_LAT`, and
+`ONTARIO_FIELDS_WINDOW_KM`. The source GeoPackage and generated runtime GeoJSON
+are ignored by Git because of their size and local mutability.
+
+To test locally:
+
+1. Open `http://localhost:3000/field-info`.
+2. Click **Add field**, draw at least three points, double-click to finish, name
+   the field, and save it.
+3. Click inside any field and verify the outline highlights, the map zooms to
+   it, and the Selected plot panel shows its name, area, and field ID.
+4. Use **Rename**, **Edit boundary**, and **Delete** in the Selected plot panel.
+5. Upload a GeoJSON or KML file containing Polygon or MultiPolygon features.
+6. Select **Elevation**, click a covered field, and verify the clipped elevation
+   overlay and metre legend appear.
+
 ### Backend
 
 Requires Python 3.10 or later.
@@ -41,7 +149,6 @@ uvicorn backend.main:app --reload
 ```
 
 The API health check is available at http://localhost:8000/health.
-
 Crop classification can optionally use Gemini to suggest a botanical family and
 relative crop-water-demand category. Configure `GEMINI_API_KEY` in the backend
 process environment only; never put it in `app/.env.local` or a

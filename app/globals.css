@@ -1760,6 +1760,45 @@ h1 {
   backdrop-filter: blur(8px);
 }
 
+.field-map-field-tools {
+  position: absolute;
+  z-index: 3;
+  top: 76px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.field-map-field-tools button,
+.field-map-selection-actions button,
+.field-map-draft-panel button {
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: rgb(25 34 28 / 94%);
+  color: var(--farmish-map-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  backdrop-filter: blur(8px);
+}
+
+.field-map-field-tools button:hover:not(:disabled),
+.field-map-selection-actions button:hover:not(:disabled),
+.field-map-draft-panel button:hover:not(:disabled) {
+  border-color: var(--farmish-map-accent);
+  color: var(--farmish-map-accent);
+}
+
+.field-map-field-tools button:disabled,
+.field-map-selection-actions button:disabled,
+.field-map-draft-panel button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .field-map-address-search:focus-within {
   border-color: var(--loam-map-accent);
   outline: 2px solid rgb(182 214 129 / 22%);
@@ -1811,7 +1850,8 @@ h1 {
 }
 
 .field-map-message,
-.field-map-selection {
+.field-map-selection,
+.field-map-elevation-panel {
   position: absolute;
   z-index: 2;
   border: 1px solid var(--loam-map-border);
@@ -1866,6 +1906,163 @@ h1 {
 .field-map-selection small {
   color: var(--loam-map-muted);
   font-size: 11px;
+}
+
+.field-map-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.field-map-selection-actions button {
+  padding: 5px 8px;
+  background: transparent;
+}
+
+.field-map-selection-actions button.is-danger {
+  border-color: var(--farmish-danger-border);
+  color: var(--farmish-danger-ink);
+}
+
+.field-map-draft-panel,
+.field-map-tool-feedback {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 8px;
+  background: rgb(25 34 28 / 96%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(8px);
+}
+
+.field-map-draft-panel {
+  top: 122px;
+  left: 16px;
+  display: grid;
+  width: min(300px, calc(100% - 32px));
+  gap: 9px;
+  padding: 14px;
+}
+
+.field-map-draft-panel input {
+  min-width: 0;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 6px;
+  outline: 0;
+  padding: 9px 10px;
+  background: var(--farmish-map-background);
+  color: var(--farmish-map-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.field-map-draft-panel input:focus {
+  border-color: var(--farmish-map-accent);
+}
+
+.field-map-draft-panel > div {
+  display: flex;
+  gap: 6px;
+}
+
+.field-map-draft-panel button:first-child {
+  border-color: var(--farmish-map-accent);
+  background: var(--farmish-map-accent);
+  color: var(--farmish-accent-ink);
+}
+
+.field-map-tool-feedback {
+  top: 118px;
+  left: 16px;
+  max-width: min(440px, calc(100% - 96px));
+  padding: 10px 12px;
+  color: var(--farmish-map-text);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.field-map-tool-feedback.is-error {
+  border-color: var(--farmish-danger-border);
+  background: rgb(59 31 29 / 96%);
+  color: var(--farmish-danger-ink);
+}
+
+.field-workspace-map .mapboxgl-ctrl-group:empty {
+  display: none;
+}
+
+.field-map-elevation-panel {
+  right: 24px;
+  bottom: 24px;
+  min-width: 220px;
+  padding: 12px 14px;
+  color: var(--farmish-map-text);
+  font-size: 12px;
+}
+
+.field-map-elevation-panel.is-error {
+  max-width: min(360px, calc(100% - 48px));
+  border-color: var(--farmish-danger-border);
+  background: rgb(59 31 29 / 94%);
+  color: #f5c5be;
+  line-height: 1.45;
+}
+
+.field-map-elevation-legend {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+}
+
+.field-map-elevation-legend strong {
+  font-size: 13px;
+}
+
+.field-map-elevation-units {
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.field-map-elevation-gradient {
+  height: 9px;
+  grid-column: 1 / -1;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 999px;
+}
+
+.field-map-elevation-range {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+}
+
+.field-map-landsat-panel {
+  min-width: 280px;
+  max-width: min(390px, calc(100% - 48px));
+}
+
+.field-map-landsat-legend {
+  grid-template-columns: 1fr auto;
+}
+
+.field-map-landsat-stat,
+.field-map-landsat-source {
+  grid-column: 1 / -1;
+}
+
+.field-map-landsat-stat {
+  color: var(--farmish-map-text);
+  font-size: 11px;
+}
+
+.field-map-landsat-source {
+  color: var(--farmish-map-muted);
+  font-size: 9px;
+  line-height: 1.35;
 }
 
 .field-workspace-map .mapboxgl-ctrl-group {
@@ -1961,9 +2158,30 @@ h1 {
     width: calc(100% - 76px);
   }
 
+  .field-map-field-tools {
+    top: 74px;
+    left: 12px;
+  }
+
+  .field-map-draft-panel,
+  .field-map-tool-feedback {
+    top: 120px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+
   .field-map-selection {
     right: 16px;
     bottom: 30px;
+    left: 16px;
+    min-width: 0;
+  }
+
+  .field-map-elevation-panel {
+    right: 16px;
+    bottom: 126px;
     left: 16px;
     min-width: 0;
   }

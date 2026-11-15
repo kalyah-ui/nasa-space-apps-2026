@@ -11,6 +11,16 @@ export interface FieldOption {
 export const FIELD_BOUNDARY_URLS = ["/data/PlotA.geojson", "/data/PlotB.geojson"] as const;
 export const SELECTED_FIELD_STORAGE_KEY = "loam-selected-field";
 
+type ApiFieldCollection = {
+  type?: unknown;
+  features?: Array<{
+    type?: unknown;
+    id?: unknown;
+    properties?: { name?: unknown } | null;
+    geometry?: RawFeature["geometry"];
+  }>;
+};
+
 type RawFeature = {
   type?: unknown;
   properties?: { name?: unknown } | null;
@@ -78,6 +88,34 @@ function normalizeGeometry(feature: RawFeature, sourceName: string): FieldGeomet
 }
 
 export async function loadFieldCatalog(signal?: AbortSignal): Promise<FieldOption[]> {
+  const apiResponse = await fetch("/api/fields", { cache: "no-store", signal });
+  if (apiResponse.ok) {
+    const collection = (await apiResponse.json()) as ApiFieldCollection;
+    if (collection.type === "FeatureCollection" && Array.isArray(collection.features)) {
+      const fields = collection.features.flatMap((feature, index) => {
+        const name = feature.properties?.name;
+        const id = feature.id;
+        if (
+          feature.type !== "Feature" ||
+          (typeof id !== "string" && typeof id !== "number") ||
+          typeof name !== "string" ||
+          !name.trim()
+        ) {
+          return [];
+        }
+        return [{
+          id: String(id),
+          name: name.trim(),
+          geometry: normalizeGeometry(
+            { type: "Feature", geometry: feature.geometry },
+            `field ${index + 1}`,
+          ),
+        }];
+      });
+      if (fields.length > 0) return fields;
+    }
+  }
+
   const collections = await Promise.all(
     FIELD_BOUNDARY_URLS.map(async (url) => {
       const response = await fetch(url, { signal });

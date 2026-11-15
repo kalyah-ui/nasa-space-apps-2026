@@ -51,8 +51,8 @@ const layerSpecs: LayerSpec[] = [
     id: "satellite",
     label: "Satellite image",
     category: "basemap",
-    available: false,
-    unavailableReason: "Satellite basemap wiring is part of the map integration step.",
+    available: true,
+    units: "Landsat 8 true colour",
   },
   {
     id: "productivity",
@@ -93,31 +93,18 @@ const layerSpecs: LayerSpec[] = [
     label: "Elevation",
     category: "thematic",
     available: true,
-    units: "demo meters",
-    legend: {
-      min: 260,
-      max: 310,
-      units: "demo meters",
-      stops: [
-        { value: 260, color: "#286b50" },
-        { value: 285, color: "#d4c77c" },
-        { value: 310, color: "#8a6045" },
-      ],
-    },
+    units: "metres",
   },
   ...([
     { id: "ndvi", min: 0, max: 1 },
     { id: "ndre", min: 0, max: 1 },
     { id: "msavi", min: 0, max: 1 },
-    { id: "reci", min: 0, max: 2.5 },
-    { id: "mcari", min: 0, max: 1 },
-    { id: "pri", min: -1, max: 1 },
   ] as const).map(({ id, min, max }): LayerSpec => ({
     id,
     label: id.toUpperCase(),
     category: "vegetation",
     available: true,
-    units: "demo index",
+    units: id === "ndvi" ? "NDVI" : "demo index",
     legend: {
       min,
       max,
@@ -153,9 +140,6 @@ const temporalLayerIds = new Set<LayerId>([
   "ndvi",
   "ndre",
   "msavi",
-  "reci",
-  "mcari",
-  "pri",
   "moisture",
 ]);
 
@@ -227,12 +211,6 @@ function layerValue(layerId: LayerId, sampleIndex: number, date: string): number
       return Number(Math.min(0.88, 0.31 + wave * 0.15 + dateIndex * 0.055).toFixed(3));
     case "msavi":
       return Number(Math.min(0.9, 0.38 + wave * 0.17 + dateIndex * 0.06).toFixed(3));
-    case "reci":
-      return Number((1.1 + wave * 0.45 + dateIndex * 0.2).toFixed(3));
-    case "mcari":
-      return Number((0.35 + wave * 0.16 + dateIndex * 0.045).toFixed(3));
-    case "pri":
-      return Number((-0.15 + wave * 0.1 + dateIndex * 0.025).toFixed(3));
     case "moisture":
       return Number(Math.min(0.9, 0.28 + Math.cos(row + column * 0.7) * 0.12 + dateIndex * 0.04).toFixed(3));
     case "satellite":
@@ -257,7 +235,10 @@ function buildLayerData(layerId: LayerId, date: string): LayerData {
 }
 
 function isInsideField([longitude, latitude]: Coordinate): boolean {
-  const ring = field.boundary.coordinates[0];
+  const ring =
+    field.boundary.type === "Polygon"
+      ? field.boundary.coordinates[0]
+      : field.boundary.coordinates[0][0];
   let inside = false;
 
   for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
@@ -285,6 +266,20 @@ function distanceMeters(first: Coordinate, second: Coordinate): number {
 }
 
 export class MockProvider implements DataProvider {
+  async listFields() {
+    return {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          id: field.id,
+          properties: { name: field.name, areaHectares: field.area },
+          geometry: field.boundary,
+        },
+      ],
+    };
+  }
+
   async getField(fieldId: string): Promise<FieldSpec | null> {
     return fieldId === field.id ? field : null;
   }
@@ -292,6 +287,10 @@ export class MockProvider implements DataProvider {
   async listLayers(fieldId: string): Promise<LayerSpec[]> {
     assertKnownField(fieldId);
     return layerSpecs.map((layer) => ({ ...layer }));
+  }
+
+  async getMapOverlay(): Promise<never> {
+    throw new Error("Raster overlays are unavailable from the mock provider.");
   }
 
   async listLayerDates(fieldId: string, layerId: LayerId): Promise<string[]> {

@@ -19,11 +19,11 @@ export function WorkspaceHeader({ field }: WorkspaceHeaderProps) {
       <AppNav variant="compact" />
       <div className="field-workspace-field">
         <div>
-          <h1>{field?.name ?? "Loading field..."}</h1>
+          <h1>{field?.name ?? "Select a field"}</h1>
           <p>
             {field
               ? `${field.area.toFixed(2)} ${field.areaUnit}`
-              : "Field details"}
+              : "Click a field boundary to begin"}
             {field?.provenance.kind === "demo" ? (
               <span className="field-workspace-demo-badge">Demo</span>
             ) : null}

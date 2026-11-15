@@ -1,5 +1,7 @@
 node_modules/
 .next/
+.next-stale-*/
+.next-build-*/
 out/
 dist/
 build/
@@ -13,8 +15,11 @@ __pycache__/
 data/nasa/**
 data/usda/**
 data/processed/**
+data/fields/*.geojson
+data/fields/*.gpkg
 !data/nasa/.gitkeep
 !data/usda/.gitkeep
 !data/processed/.gitkeep
+!data/fields/.gitkeep
 # TypeScript incremental build cache
 tsconfig.tsbuildinfo

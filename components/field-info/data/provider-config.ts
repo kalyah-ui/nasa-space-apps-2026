@@ -3,7 +3,7 @@ import { MockProvider } from "./mock-provider";
 import type { DataProvider } from "./types";
 
 function createDataProvider(): DataProvider {
-  const providerName = process.env.NEXT_PUBLIC_DATA_PROVIDER ?? "mock";
+  const providerName = process.env.NEXT_PUBLIC_DATA_PROVIDER ?? "api";
 
   if (providerName === "mock") {
     return new MockProvider();

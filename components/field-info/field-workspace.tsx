@@ -7,12 +7,10 @@ import { FieldMap } from "./field-map";
 import { LayerSidebar } from "./layer-sidebar";
 import { WorkspaceHeader } from "./workspace-header";
 
-const fieldId = "demo-field-01";
-
 export function FieldWorkspace() {
   const [field, setField] = useState<FieldSpec | null>(null);
   const [layers, setLayers] = useState<LayerSpec[]>([]);
-  const [selectedLayerId, setSelectedLayerId] = useState<LayerId>("productivity");
+  const [selectedLayerId, setSelectedLayerId] = useState<LayerId>("satellite");
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,15 +18,8 @@ export function FieldWorkspace() {
 
     async function loadWorkspaceData() {
       try {
-        const [loadedField, loadedLayers] = await Promise.all([
-          fieldDataProvider.getField(fieldId),
-          fieldDataProvider.listLayers(fieldId),
-        ]);
-        if (!loadedField) {
-          throw new Error(`Field "${fieldId}" was not found.`);
-        }
+        const loadedLayers = await fieldDataProvider.listLayers();
         if (active) {
-          setField(loadedField);
           setLayers(loadedLayers);
         }
       } catch (error) {
@@ -56,7 +47,7 @@ export function FieldWorkspace() {
           selectedLayerId={selectedLayerId}
         />
 
-        <FieldMap />
+        <FieldMap onSelectField={setField} selectedLayerId={selectedLayerId} />
       </div>
     </main>
   );
