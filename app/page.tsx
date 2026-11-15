@@ -11,11 +11,26 @@ const workflows = [
 export default function HomePage() {
   return (
     <SiteShell>
-      <p className="eyebrow">Land intelligence for a changing climate</p>
-      <h1>Make the next farm decision with more context.</h1>
-      <p className="intro">
-        Explore environmental signals and agricultural data to understand what a parcel can support today and over time.
-      </p>
+      <section aria-labelledby="landing-hero-title" className="landing-hero">
+        <p className="eyebrow">Land intelligence for a changing climate</p>
+        <h1 className="landing-hero-name" id="landing-hero-title">
+          loam
+        </h1>
+        <p className="landing-hero-tagline">The dirt on your dirt.</p>
+        <p className="landing-hero-description">
+          NASA Earth observation and open agricultural data, read together — so you can judge what
+          a parcel supports today, and whether it still will in ten years.
+        </p>
+        <div className="landing-cta-row">
+          <Link className="landing-cta is-primary" href="/discovery">
+            Browse parcels
+          </Link>
+          <Link className="landing-cta" href="/field-info">
+            Open Field Info
+          </Link>
+        </div>
+      </section>
+
       <div aria-label="loam workflows" className="workflow-list">
         {workflows.map((workflow) => (
           <Link className="workflow-link" href={workflow.href} key={workflow.href}>

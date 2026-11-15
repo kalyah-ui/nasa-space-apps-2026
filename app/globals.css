@@ -270,6 +270,118 @@ h1 {
   line-height: 1.6;
 }
 
+/* ---- Landing hero ------------------------------------------------------ */
+
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: var(--loam-space-6);
+  padding: clamp(32px, 6vw, 64px) clamp(24px, 5vw, 56px);
+  border: 1px solid var(--loam-border);
+  border-radius: var(--loam-radius-panel);
+  /* Satellite-style backdrop: soft accent glow, faint field-boundary lines,
+     and two crosshatched "survey grid" passes. Decorative only. */
+  background:
+    radial-gradient(ellipse 75% 90% at 85% 8%, var(--loam-accent-soft), transparent 62%),
+    linear-gradient(
+      107deg,
+      transparent 0 33.6%,
+      rgb(182 214 129 / 5%) 33.6% 34%,
+      transparent 34% 57.6%,
+      rgb(182 214 129 / 5%) 57.6% 58%,
+      transparent 58% 80.6%,
+      rgb(182 214 129 / 5%) 80.6% 81%,
+      transparent 81%
+    ),
+    repeating-linear-gradient(25deg, rgb(237 242 232 / 2.2%) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(-65deg, rgb(237 242 232 / 1.8%) 0 1px, transparent 1px 104px),
+    var(--loam-panel);
+}
+
+:root[data-theme="light"] .landing-hero {
+  background:
+    radial-gradient(ellipse 75% 90% at 85% 8%, var(--loam-accent-soft), transparent 62%),
+    linear-gradient(
+      107deg,
+      transparent 0 33.6%,
+      rgb(74 115 36 / 7%) 33.6% 34%,
+      transparent 34% 57.6%,
+      rgb(74 115 36 / 7%) 57.6% 58%,
+      transparent 58% 80.6%,
+      rgb(74 115 36 / 7%) 80.6% 81%,
+      transparent 81%
+    ),
+    repeating-linear-gradient(25deg, rgb(29 41 33 / 3.2%) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(-65deg, rgb(29 41 33 / 2.6%) 0 1px, transparent 1px 104px),
+    var(--loam-panel);
+}
+
+.landing-hero-name {
+  margin: 4px 0 0;
+  color: var(--loam-accent);
+  font-size: clamp(48px, 8vw, 76px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.landing-hero-tagline {
+  margin: 10px 0 0;
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-style: italic;
+}
+
+.landing-hero-description {
+  max-width: 54ch;
+  margin: 16px 0 0;
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.landing-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--loam-space-3);
+  margin-top: var(--loam-space-6);
+}
+
+.landing-cta {
+  padding: 11px 20px;
+  border: 1px solid var(--loam-border);
+  border-radius: var(--loam-radius-control);
+  background: var(--loam-raised);
+  font-family: var(--loam-font-sans);
+  font-size: 15px;
+  font-weight: 650;
+  text-decoration: none;
+  transition:
+    background-color var(--loam-duration) var(--loam-ease),
+    border-color var(--loam-duration) var(--loam-ease),
+    color var(--loam-duration) var(--loam-ease);
+}
+
+.landing-cta:hover {
+  border-color: var(--loam-accent);
+  color: var(--loam-accent);
+}
+
+.landing-cta:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
+.landing-cta.is-primary {
+  border-color: var(--loam-accent);
+  background: var(--loam-accent);
+  color: var(--loam-accent-ink);
+}
+
+.landing-cta.is-primary:hover {
+  filter: brightness(1.08);
+  color: var(--loam-accent-ink);
+}
+
 .workflow-list {
   display: grid;
   border-top: 1px solid var(--loam-border);
