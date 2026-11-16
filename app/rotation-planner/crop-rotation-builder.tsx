@@ -102,9 +102,20 @@ function familySuggestionLabel(
 export function CropRotationBuilder({
   fieldName,
   fieldSoil,
+  stage,
+  onBackToField,
+  onEditCrops,
+  onPlanReady,
+  onPlanCleared,
 }: {
   fieldName: string;
   fieldSoil: FieldSoilContext | null;
+  /** Which wizard panel to render; "hidden" keeps state mounted without UI. */
+  stage: "hidden" | "crops" | "results";
+  onBackToField: () => void;
+  onEditCrops: () => void;
+  onPlanReady: () => void;
+  onPlanCleared: () => void;
 }) {
   const [currentCrop, setCurrentCrop] = useState<RotationCropInput>({ name: "", family: "" });
   const [desiredCrops, setDesiredCrops] = useState<DesiredCrop[]>([]);
@@ -172,6 +183,7 @@ export function CropRotationBuilder({
     setSelectedScenario(0);
     setSeasons([]);
     setError(null);
+    onPlanCleared();
   }
 
   function updateDesiredCrop(id: number, patch: DesiredCropPatch) {
@@ -384,6 +396,7 @@ export function CropRotationBuilder({
         }),
       ];
       setScenarios(scenariosWithPlans);
+      onPlanReady();
     } catch (planningError) {
       setError(planningError instanceof Error ? planningError.message : "Unable to build this crop sequence.");
     } finally {
@@ -419,6 +432,194 @@ export function CropRotationBuilder({
       return [crop.name.trim().toLowerCase(), { name: crop.name.trim(), family }];
     }),
   ).values()];
+
+  const resultsBody = plan && (
+    <div aria-live="polite" className="crop-plan-result">
+      <p className="rotation-provenance">Planning sequences, not performance ratings.</p>
+      <div aria-label="Rotation scenario" className="rotation-scenario-picker" role="group">
+        {scenarios.map((scenario, index) => (
+          <button
+            aria-pressed={selectedScenario === index}
+            className="rotation-scenario-option"
+            key={scenario.name}
+            onClick={() => setSelectedScenario(index)}
+            type="button"
+          >
+            {scenario.name}
+          </button>
+        ))}
+      </div>
+      <ul className="rotation-scenario-list">
+        {scenarios.map((scenario, index) => {
+          const matchesBaseline = index > 0 && scenarios[0].plan?.every(
+            (crop, cropIndex) => crop.name === scenario.plan?.[cropIndex]?.name,
+          );
+          return (
+          <li hidden={selectedScenario !== index} key={scenario.name}>
+            <div className="rotation-scenario-heading">
+              <strong>{scenario.name}</strong>
+              {matchesBaseline && <span>Same order as current rotation</span>}
+            </div>
+            {scenario.plan ? (
+              <>
+                <ol className="crop-plan-timeline" aria-label={`${scenario.name} crop sequence`}>
+                  {scenario.plan.map((crop) => (
+                    <li key={crop.year}>
+                      <span>Year {crop.year}{crop.isCurrent ? " · Current" : ""}</span>
+                      <strong>{crop.name}</strong>
+                      <small>{familyLabel(crop.family)}</small>
+                    </li>
+                  ))}
+                </ol>
+                <dl className="rotation-score-grid">
+                  <div>
+                    <dt>Average field soil fit</dt>
+                    <dd className={scenario.fieldFitScore == null ? "rotation-metric-pending" : undefined}>{scenario.fieldFitScore == null
+                      ? fieldSoil ? "Not rated" : "Needs field soil data"
+                      : `${scenario.fieldFitScore}/100`}</dd>
+                    {scenario.fieldFitScore != null && <small>{scenario.fieldFitCoveragePct}% of planned crops rated</small>}
+                  </div>
+                  <div>
+                    <dt>Family diversity</dt>
+                    <dd>{scenario.familyCount} distinct {scenario.familyCount === 1 ? "family" : "families"}</dd>
+                    <small>{scenario.plan.length - 1} future seasons · {scenario.familyConflictCount === 0 ? "No consecutive repeats" : `${scenario.familyConflictCount} consecutive repeats`}</small>
+                  </div>
+                  <div>
+                    <dt>Relative water demand</dt>
+                    <dd className={scenario.relativeWaterDemand == null ? "rotation-metric-pending" : undefined}>{scenario.relativeWaterDemand == null
+                      ? "Enter crop demand"
+                      : `${scenario.relativeWaterDemand}/3`}</dd>
+                    {scenario.relativeWaterDemand != null && <small>1 = lower · 3 = higher</small>}
+                  </div>
+                  <div>
+                    <dt>Gross revenue estimate</dt>
+                    <dd className={scenario.estimatedGrossRevenuePerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedGrossRevenuePerHa == null
+                      ? "Needs yield + price"
+                      : `$${scenario.estimatedGrossRevenuePerHa.toLocaleString()}/ha`}</dd>
+                    {scenario.estimatedGrossRevenuePerHa != null && <small>{scenario.revenueCoveragePct}% of future seasons priced · before costs</small>}
+                  </div>
+                  <div>
+                    <dt>Budget margin estimate</dt>
+                    <dd className={scenario.estimatedMarginPerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedMarginPerHa == null
+                      ? "Needs yield, price + budget"
+                      : `$${scenario.estimatedMarginPerHa.toLocaleString()}/ha`}</dd>
+                    <small>Average per future season · depends on costs included</small>
+                  </div>
+                </dl>
+                <details className="rotation-scenario-details">
+                  <summary>How this scenario works</summary>
+                  <p className="rotation-scenario-note">{scenario.note}</p>
+                </details>
+              </>
+            ) : (
+              <p className="rotation-error">Add crops from more families or shorten the rotation.</p>
+            )}
+          </li>
+          );
+        })}
+      </ul>
+
+      <section aria-labelledby="season-schedule-title" className="season-editor">
+        <div className="rotation-section-heading">
+          <div>
+            <p className="eyebrow">Year-by-year plan</p>
+            <h3 id="season-schedule-title">Crop rotation schedule</h3>
+          </div>
+          <button className="crop-add-button season-add-button" onClick={addSeason} type="button">
+            <Plus aria-hidden="true" size={16} />
+            Add season
+          </button>
+        </div>
+        <div aria-hidden="true" className="season-table-header">
+          <span>Season</span>
+          <span>Crop</span>
+          <span>Planting date</span>
+          <span>Harvest date</span>
+          <span />
+        </div>
+        <div className="season-row-list">
+          {seasons.map((season) => (
+            <div className="season-row" key={season.id}>
+              <div className="season-year">
+                <strong>Season {season.year}</strong>
+                <small>
+                  {season.plantingDate || season.harvestDate
+                    ? `${season.plantingDate || "Date TBD"} – ${season.harvestDate || "Date TBD"}`
+                    : "Dates not set"}
+                </small>
+              </div>
+              <label>
+                <span className="season-mobile-label">Crop</span>
+                <select
+                  onChange={(event) => updateSeason(season.id, { cropName: event.target.value })}
+                  value={season.cropName}
+                >
+                  <option value="">Choose crop</option>
+                  {cropOptions.map((crop) => (
+                    <option key={crop.name} value={crop.name}>{crop.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="season-mobile-label">Planting date</span>
+                <input
+                  aria-label={`Season ${season.year} planting date`}
+                  onChange={(event) => updateSeason(season.id, { plantingDate: event.target.value })}
+                  type="date"
+                  value={season.plantingDate}
+                />
+              </label>
+              <label>
+                <span className="season-mobile-label">Harvest date</span>
+                <input
+                  aria-label={`Season ${season.year} harvest date`}
+                  onChange={(event) => updateSeason(season.id, { harvestDate: event.target.value })}
+                  type="date"
+                  value={season.harvestDate}
+                />
+              </label>
+              <button
+                aria-label={`Remove season ${season.year}`}
+                className="crop-remove-button season-remove-button"
+                onClick={() => removeSeason(season.id)}
+                title="Remove season"
+                type="button"
+              >
+                <Trash2 aria-hidden="true" size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+
+  if (stage === "hidden") {
+    return null;
+  }
+
+  if (stage === "results") {
+    return (
+      <section aria-labelledby="crop-results-title" className="rotation-section">
+        <div className="rotation-section-heading">
+          <div>
+            <p className="eyebrow">Results</p>
+            <h2 id="crop-results-title">Rotation scenarios for {fieldName}</h2>
+          </div>
+          <button className="wizard-back" onClick={onEditCrops} type="button">
+            ← Edit crops
+          </button>
+        </div>
+        {plan ? (
+          resultsBody
+        ) : (
+          <p className="rotation-provenance">
+            Build a sequence on the crops step to see rotation scenarios.
+          </p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="crop-plan-title" className="rotation-section">
@@ -640,175 +841,18 @@ export function CropRotationBuilder({
               value={rotationLength}
             />
           </label>
-          <button className="crop-plan-submit" disabled={classifying} type="submit">
-            {classifying ? "Checking crops…" : "Build sequence"}
-          </button>
+          <div className="wizard-nav">
+            <button className="wizard-back" onClick={onBackToField} type="button">
+              ← Field
+            </button>
+            <button className="crop-plan-submit" disabled={classifying} type="submit">
+              {classifying ? "Checking crops…" : "Build sequence →"}
+            </button>
+          </div>
         </div>
       </form>
 
       {error && <p aria-live="polite" className="rotation-error" role="alert">{error}</p>}
-
-      {plan && (
-        <div aria-live="polite" className="crop-plan-result">
-          <h3>Rotation scenarios for {fieldName}</h3>
-          <p className="rotation-provenance">Planning sequences, not performance ratings.</p>
-          <div aria-label="Rotation scenario" className="rotation-scenario-picker" role="group">
-            {scenarios.map((scenario, index) => (
-              <button
-                aria-pressed={selectedScenario === index}
-                className="rotation-scenario-option"
-                key={scenario.name}
-                onClick={() => setSelectedScenario(index)}
-                type="button"
-              >
-                {scenario.name}
-              </button>
-            ))}
-          </div>
-          <ul className="rotation-scenario-list">
-            {scenarios.map((scenario, index) => {
-              const matchesBaseline = index > 0 && scenarios[0].plan?.every(
-                (crop, cropIndex) => crop.name === scenario.plan?.[cropIndex]?.name,
-              );
-              return (
-              <li hidden={selectedScenario !== index} key={scenario.name}>
-                <div className="rotation-scenario-heading">
-                  <strong>{scenario.name}</strong>
-                  {matchesBaseline && <span>Same order as current rotation</span>}
-                </div>
-                {scenario.plan ? (
-                  <>
-                    <ol className="crop-plan-timeline" aria-label={`${scenario.name} crop sequence`}>
-                      {scenario.plan.map((crop) => (
-                        <li key={crop.year}>
-                          <span>Year {crop.year}{crop.isCurrent ? " · Current" : ""}</span>
-                          <strong>{crop.name}</strong>
-                          <small>{familyLabel(crop.family)}</small>
-                        </li>
-                      ))}
-                    </ol>
-                    <dl className="rotation-score-grid">
-                      <div>
-                        <dt>Average field soil fit</dt>
-                        <dd className={scenario.fieldFitScore == null ? "rotation-metric-pending" : undefined}>{scenario.fieldFitScore == null
-                          ? fieldSoil ? "Not rated" : "Needs field soil data"
-                          : `${scenario.fieldFitScore}/100`}</dd>
-                        {scenario.fieldFitScore != null && <small>{scenario.fieldFitCoveragePct}% of planned crops rated</small>}
-                      </div>
-                      <div>
-                        <dt>Family diversity</dt>
-                        <dd>{scenario.familyCount} distinct {scenario.familyCount === 1 ? "family" : "families"}</dd>
-                        <small>{scenario.plan.length - 1} future seasons · {scenario.familyConflictCount === 0 ? "No consecutive repeats" : `${scenario.familyConflictCount} consecutive repeats`}</small>
-                      </div>
-                      <div>
-                        <dt>Relative water demand</dt>
-                        <dd className={scenario.relativeWaterDemand == null ? "rotation-metric-pending" : undefined}>{scenario.relativeWaterDemand == null
-                          ? "Enter crop demand"
-                          : `${scenario.relativeWaterDemand}/3`}</dd>
-                        {scenario.relativeWaterDemand != null && <small>1 = lower · 3 = higher</small>}
-                      </div>
-                      <div>
-                        <dt>Gross revenue estimate</dt>
-                        <dd className={scenario.estimatedGrossRevenuePerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedGrossRevenuePerHa == null
-                          ? "Needs yield + price"
-                          : `$${scenario.estimatedGrossRevenuePerHa.toLocaleString()}/ha`}</dd>
-                        {scenario.estimatedGrossRevenuePerHa != null && <small>{scenario.revenueCoveragePct}% of future seasons priced · before costs</small>}
-                      </div>
-                      <div>
-                        <dt>Budget margin estimate</dt>
-                        <dd className={scenario.estimatedMarginPerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedMarginPerHa == null
-                          ? "Needs yield, price + budget"
-                          : `$${scenario.estimatedMarginPerHa.toLocaleString()}/ha`}</dd>
-                        <small>Average per future season · depends on costs included</small>
-                      </div>
-                    </dl>
-                    <details className="rotation-scenario-details">
-                      <summary>How this scenario works</summary>
-                      <p className="rotation-scenario-note">{scenario.note}</p>
-                    </details>
-                  </>
-                ) : (
-                  <p className="rotation-error">Add crops from more families or shorten the rotation.</p>
-                )}
-              </li>
-              );
-            })}
-          </ul>
-
-          <section aria-labelledby="season-schedule-title" className="season-editor">
-            <div className="rotation-section-heading">
-              <div>
-                <p className="eyebrow">Year-by-year plan</p>
-                <h3 id="season-schedule-title">Crop rotation schedule</h3>
-              </div>
-              <button className="crop-add-button season-add-button" onClick={addSeason} type="button">
-                <Plus aria-hidden="true" size={16} />
-                Add season
-              </button>
-            </div>
-            <div aria-hidden="true" className="season-table-header">
-              <span>Season</span>
-              <span>Crop</span>
-              <span>Planting date</span>
-              <span>Harvest date</span>
-              <span />
-            </div>
-            <div className="season-row-list">
-              {seasons.map((season) => (
-                <div className="season-row" key={season.id}>
-                  <div className="season-year">
-                    <strong>Season {season.year}</strong>
-                    <small>
-                      {season.plantingDate || season.harvestDate
-                        ? `${season.plantingDate || "Date TBD"} – ${season.harvestDate || "Date TBD"}`
-                        : "Dates not set"}
-                    </small>
-                  </div>
-                  <label>
-                    <span className="season-mobile-label">Crop</span>
-                    <select
-                      onChange={(event) => updateSeason(season.id, { cropName: event.target.value })}
-                      value={season.cropName}
-                    >
-                      <option value="">Choose crop</option>
-                      {cropOptions.map((crop) => (
-                        <option key={crop.name} value={crop.name}>{crop.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <span className="season-mobile-label">Planting date</span>
-                    <input
-                      aria-label={`Season ${season.year} planting date`}
-                      onChange={(event) => updateSeason(season.id, { plantingDate: event.target.value })}
-                      type="date"
-                      value={season.plantingDate}
-                    />
-                  </label>
-                  <label>
-                    <span className="season-mobile-label">Harvest date</span>
-                    <input
-                      aria-label={`Season ${season.year} harvest date`}
-                      onChange={(event) => updateSeason(season.id, { harvestDate: event.target.value })}
-                      type="date"
-                      value={season.harvestDate}
-                    />
-                  </label>
-                  <button
-                    aria-label={`Remove season ${season.year}`}
-                    className="crop-remove-button season-remove-button"
-                    onClick={() => removeSeason(season.id)}
-                    title="Remove season"
-                    type="button"
-                  >
-                    <Trash2 aria-hidden="true" size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
     </section>
   );
 }

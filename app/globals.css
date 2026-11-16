@@ -2350,6 +2350,113 @@ h1 {
   gap: 28px;
 }
 
+/* ---- Rotation wizard --------------------------------------------------- */
+
+.wizard-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wizard-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 9px;
+  border: 1px solid var(--loam-border);
+  border-radius: 999px;
+  background: var(--loam-raised);
+  color: var(--loam-muted);
+  cursor: pointer;
+  font-family: var(--loam-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    border-color var(--loam-duration) var(--loam-ease),
+    color var(--loam-duration) var(--loam-ease);
+}
+
+.wizard-step:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.wizard-step:not(:disabled):hover,
+.wizard-step.is-done {
+  border-color: var(--loam-accent);
+  color: var(--loam-ink);
+}
+
+.wizard-step.is-active {
+  border-color: var(--loam-accent);
+  background: var(--loam-accent-soft);
+  color: var(--loam-ink);
+}
+
+.wizard-step:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
+.wizard-step-number {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--loam-border);
+  border-radius: 50%;
+  background: var(--loam-surface-soft);
+  font-size: 12px;
+  place-items: center;
+}
+
+.wizard-step.is-active .wizard-step-number,
+.wizard-step.is-done .wizard-step-number {
+  border-color: var(--loam-accent);
+  background: var(--loam-accent);
+  color: var(--loam-accent-ink);
+}
+
+.wizard-nav {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.wizard-nav .crop-plan-submit {
+  min-height: 42px;
+  padding: 0 24px;
+}
+
+.wizard-back {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--loam-border);
+  border-radius: var(--loam-radius-control);
+  background: var(--loam-raised);
+  color: var(--loam-ink);
+  cursor: pointer;
+  font-family: var(--loam-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    border-color var(--loam-duration) var(--loam-ease),
+    color var(--loam-duration) var(--loam-ease);
+}
+
+.wizard-back:hover {
+  border-color: var(--loam-accent);
+  color: var(--loam-accent);
+}
+
+.wizard-back:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
 .rotation-section {
   padding-top: 22px;
   border-top: 1px solid var(--loam-border);
@@ -2377,11 +2484,11 @@ h1 {
 }
 
 .rotation-location-form {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   margin-top: 20px;
   gap: 12px;
-  grid-template-columns: minmax(200px, 1fr) auto;
-  align-items: end;
+  align-items: flex-end;
 }
 
 .rotation-location-form label {
@@ -2405,6 +2512,7 @@ h1 {
 }
 
 .rotation-field-select {
+  width: 100%;
   max-width: 460px;
 }
 
