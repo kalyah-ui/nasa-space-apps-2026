@@ -12,7 +12,7 @@ export function FieldInsights({ sample, fieldSoil }: { sample: TerrainSample; fi
         <p className="eyebrow">Field conditions</p>
         <h2 id="field-conditions-title">{sample.field_name}</h2>
         <p className="rotation-provenance">
-          Screening information for this boundary. Soil landscape data is regional context, not a substitute for a field soil test.
+          These results are screening information for this boundary. Soil landscape data provide regional context, not a substitute for a field soil test.
         </p>
         <dl className="farmer-condition-grid">
           <div>
@@ -34,7 +34,7 @@ export function FieldInsights({ sample, fieldSoil }: { sample: TerrainSample; fi
         </dl>
         {cropClassPresent && (
           <p className="rotation-provenance">
-            2025 Annual Crop Inventory satellite classification, not a confirmed current crop. Sampled pixels may include non-crop land cover.
+            The 2025 Annual Crop Inventory classification is not a confirmation of the current crop. Sampled pixels may include non-crop land cover.
           </p>
         )}
         {cropClasses.length > 0 && (

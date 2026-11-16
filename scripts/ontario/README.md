@@ -4,8 +4,8 @@
 comparison table on printed page 2 of Ontario Publication 60. Costs are sample
 estimates in Canadian dollars; the per-hectare values convert the source's
 per-acre amounts using 1 acre = 0.40468564224 hectares and round to cents.
-Crop practices are kept separate. The source leaves land rent and certain
-farm-specific overhead blank, so add those costs before estimating profit.
+Crop practices are kept separate. The source leaves land rent and some
+farm-specific overhead costs blank, so add those costs before estimating profit.
 The source projected market and input prices as of November 2025. These are
 not actual costs for a particular farm or a forecast of future prices.
 

@@ -367,7 +367,7 @@ export function CropRotationBuilder({
       const waterSummary = (scenarioPlan: PlannedRotationCrop[]) => {
         const selectedDemands = desiredCropsWithFamilies.map((crop) => crop.waterDemand);
         if (selectedDemands.every((demand) => demand === "unknown")) {
-          return "Choose a relative water demand for at least one candidate crop to prioritize lower-demand options; water use is not estimated";
+          return "Choose a relative water demand for at least one candidate crop to prioritize lower-demand options; water use is not estimated.";
         }
         const counts = new Map<DesiredCrop["waterDemand"], number>();
         for (const crop of scenarioPlan.slice(1)) {
@@ -385,7 +385,7 @@ export function CropRotationBuilder({
           "Year 1 is your current crop; future years follow the crop order you entered."),
         makeScenario("Budget margin focused", profitOrder, () => hasAllMargins
           ? "Ordered by expected yield × price minus the selected or entered cost. Ontario samples exclude land rent and other farm-specific costs; user-entered costs depend on what you include."
-          : "Enter yield, price, and select a budget or enter a cost for every crop to rank by budget margin. Your entered order is used until all are available."),
+          : "Enter yield and price, then select a budget or enter a cost for every crop to rank by budget margin. Until all inputs are available, crops remain in the order you entered."),
         makeScenario("Water conservation", waterOrder, (scenarioPlan) =>
           `${waterSummary(scenarioPlan)}. Lower relative-demand crops are scheduled first; this is not an irrigation-volume estimate.`),
         makeScenario("Soil regeneration", legumeFirst, (scenarioPlan) => {
@@ -458,7 +458,7 @@ export function CropRotationBuilder({
           <li hidden={selectedScenario !== index} key={scenario.name}>
             <div className="rotation-scenario-heading">
               <strong>{scenario.name}</strong>
-              {matchesBaseline && <span>Same order as current rotation</span>}
+              {matchesBaseline && <span>Same order as the current rotation</span>}
             </div>
             {scenario.plan ? (
               <>
@@ -494,14 +494,14 @@ export function CropRotationBuilder({
                   <div>
                     <dt>Gross revenue estimate</dt>
                     <dd className={scenario.estimatedGrossRevenuePerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedGrossRevenuePerHa == null
-                      ? "Needs yield + price"
+                      ? "Yield and price needed"
                       : `$${scenario.estimatedGrossRevenuePerHa.toLocaleString()}/ha`}</dd>
                     {scenario.estimatedGrossRevenuePerHa != null && <small>{scenario.revenueCoveragePct}% of future seasons priced · before costs</small>}
                   </div>
                   <div>
                     <dt>Budget margin estimate</dt>
                     <dd className={scenario.estimatedMarginPerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedMarginPerHa == null
-                      ? "Needs yield, price + budget"
+                      ? "Yield, price, and budget needed"
                       : `$${scenario.estimatedMarginPerHa.toLocaleString()}/ha`}</dd>
                     <small>Average per future season · depends on costs included</small>
                   </div>
@@ -614,7 +614,7 @@ export function CropRotationBuilder({
           resultsBody
         ) : (
           <p className="rotation-provenance">
-            Build a sequence on the crops step to see rotation scenarios.
+            Build a sequence in the Crops step to see rotation scenarios.
           </p>
         )}
       </section>
@@ -641,7 +641,7 @@ export function CropRotationBuilder({
                 setCurrentCrop((crop) => ({ ...crop, name: event.target.value }));
                 invalidatePlan();
               }}
-              placeholder="e.g. Corn"
+              placeholder="e.g., corn"
               required
               value={currentCrop.name}
             />
@@ -671,7 +671,7 @@ export function CropRotationBuilder({
               </select>
             </label>
           ) : (
-            <p className="crop-family-prompt">Crop family will be filled in from a recognized crop name.</p>
+            <p className="crop-family-prompt">We&apos;ll infer the crop family from a recognized crop name.</p>
           )}
         </div>
         {fieldSoil && currentCrop.name.trim() && (() => {
@@ -695,7 +695,7 @@ export function CropRotationBuilder({
                   Crop {index + 1}
                   <input
                     onChange={(event) => updateDesiredCrop(crop.id, { name: event.target.value, budgetIndex: "", customCost: "", waterDemand: "unknown", waterDemandManual: false })}
-                    placeholder="e.g. Soybean"
+                    placeholder="e.g., soybean"
                     required
                     value={crop.name}
                   />
@@ -722,7 +722,7 @@ export function CropRotationBuilder({
                     </select>
                   </label>
                 ) : (
-                  <p className="crop-family-prompt">Family is identified from crop name.</p>
+                  <p className="crop-family-prompt">We infer the family from the crop name.</p>
                 )}
                 <label className="crop-water-demand">
                   Relative water demand
@@ -776,7 +776,7 @@ export function CropRotationBuilder({
                     onChange={(event) => updateDesiredCrop(crop.id, { budgetIndex: event.target.value })}
                     value={crop.budgetIndex}
                   >
-                    <option value="">{budgetStatus === "loading" ? "Loading Ontario budgets" : budgetStatus === "unavailable" ? "Ontario budgets unavailable" : !crop.name.trim() ? "Enter a crop first" : !budgets.some((budget) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop))) ? "No matching Ontario budget" : "Select a cost source"}</option>
+                    <option value="">{budgetStatus === "loading" ? "Loading Ontario budgets…" : budgetStatus === "unavailable" ? "Ontario budgets unavailable" : !crop.name.trim() ? "Enter a crop first" : !budgets.some((budget) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop))) ? "No Ontario budget matches this crop" : "Select a cost source"}</option>
                     <option value="custom">Enter my own cost</option>
                     {budgets.map((budget, budgetIndex) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop)) && (
                       <option key={`${budget.crop}-${budget.practice}`} value={budgetIndex}>

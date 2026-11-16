@@ -9,7 +9,7 @@ export type KpiTileProps = {
   estimateTitle?: string;
 };
 
-/** One labelled stat tile with loading-skeleton and missing-value states. */
+/** One labelled stat tile with loading and missing-value states. */
 export function KpiTile({ label, value, unit, note, loading, estimateTitle }: KpiTileProps) {
   return (
     <div className="kpi-tile">

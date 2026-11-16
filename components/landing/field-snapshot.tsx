@@ -21,7 +21,7 @@ import type { DailyHistory, Forecast } from "@/lib/weather/types";
 const ottawaValleyCenter = { latitude: 45.3083, longitude: -76.2925 };
 
 /**
- * The weather strip uses live regional data at the center of the Ottawa Landsat scene.
+ * The weather strip uses live regional data at the centre of the Ottawa Landsat scene.
  */
 export function FieldSnapshot() {
   return (
@@ -69,14 +69,14 @@ function FieldSnapshotInner({ latitude, longitude }: { latitude: number; longitu
 
       <div className="kpi-grid">
           <KpiTile
-            label="30-day rain"
+            label="30-day rainfall"
             loading={history.status === "loading"}
             note="NASA POWER"
             unit="mm"
             value={rain30 !== null ? formatNumber(rain30) : null}
           />
           <KpiTile
-            label="Avg temp (30d)"
+            label="Average temperature (30 days)"
             loading={history.status === "loading"}
             note="NASA POWER"
             unit="°C"

@@ -1097,7 +1097,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               disabled={isSearchingAddress || !addressQuery.trim()}
               type="submit"
             >
-              {isSearchingAddress ? "Searching..." : "Search"}
+              {isSearchingAddress ? "Searching…" : "Search"}
             </button>
             {addressSearchError ? (
               <span className="field-map-address-feedback is-error" role="alert">
@@ -1159,7 +1159,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
 
       {isLoading ? (
         <div className="field-map-message" role="status">
-          Loading field boundaries...
+          Loading field boundaries…
         </div>
       ) : null}
       {mapError ? (
@@ -1171,11 +1171,11 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
 
       {!mapError && !isLoading ? (
         <div aria-live="polite" className="field-map-selection">
-          <span>Selected plot</span>
-          <strong>{selectedField?.properties.name ?? "None"}</strong>
+          <span>Selected field</span>
+          <strong>{selectedField?.properties.name ?? "None selected"}</strong>
           <small>
             {selectedField
-              ? `${selectedField.properties.areaHectares.toFixed(2)} ha ? Field ID ${selectedField.id}`
+              ? `${selectedField.properties.areaHectares.toFixed(2)} ha · Field ID ${selectedField.id}`
               : fields.features.length > 0
                 ? "Click inside a field boundary to inspect it."
                 : "Add or upload a field boundary to begin."}
@@ -1241,7 +1241,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
           />
           <div>
             <button disabled={isSavingField} type="submit">
-              {isSavingField ? "Saving..." : "Save field"}
+              {isSavingField ? "Saving…" : "Save field"}
             </button>
             <button disabled={isSavingField} onClick={cancelDraft} type="button">
               Cancel
@@ -1284,7 +1284,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
             <span>Select a field to load elevation.</span>
           ) : null}
           {elevationStatus.kind === "loading" ? (
-            <span>Loading SRTM elevation...</span>
+            <span>Loading SRTM elevation…</span>
           ) : null}
           {elevationStatus.kind === "error" ? (
             <span>{elevationStatus.message}</span>
@@ -1323,7 +1323,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
             <span>Select a field to load Landsat imagery.</span>
           ) : null}
           {landsatStatus.kind === "loading" ? (
-            <span>Loading Landsat surface reflectance...</span>
+            <span>Loading Landsat surface reflectance…</span>
           ) : null}
           {landsatStatus.kind === "error" ? <span>{landsatStatus.message}</span> : null}
           {landsatStatus.kind === "ready" ? (
@@ -1387,7 +1387,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               <option value="forage">Forage</option>
             </select>
           </label>
-          {soilStatus.kind === "loading" ? <span>Loading CanSIS regions...</span> : null}
+          {soilStatus.kind === "loading" ? <span>Loading CanSIS regions…</span> : null}
           {soilStatus.kind === "empty" || soilStatus.kind === "error" ? (
             <span>{soilStatus.message}</span>
           ) : null}
@@ -1412,7 +1412,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               </small>
               {selectedField ? (
                 <div className="field-map-soil-overlaps">
-                  <b>Selected-field regions</b>
+                  <b>Regions within the selected field</b>
                   {soilStatus.data.features
                     .filter((feature) => (feature.properties.overlapPercent ?? 0) > 0)
                     .sort(

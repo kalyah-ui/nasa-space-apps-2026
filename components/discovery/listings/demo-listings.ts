@@ -10,7 +10,7 @@
  * listing's story (soil quality, region, improvements). Each listing's price
  * comment records its multiplier. Multipliers stay in a modest 0.55×–2× band
  * so comparisons against the provincial average remain plausible; genuinely
- * premium micro-regions (e.g. Okanagan orchard land) are deliberately kept at
+ * premium micro-regions (e.g., Okanagan orchard land) are deliberately kept at
  * the low end of their real-world range.
  */
 

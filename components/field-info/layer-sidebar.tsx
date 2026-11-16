@@ -69,7 +69,7 @@ export function LayerSidebar({
         <span className="field-workspace-visually-hidden">Search layers</span>
         <input
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search..."
+          placeholder="Search layers…"
           type="search"
           value={query}
         />
@@ -78,7 +78,7 @@ export function LayerSidebar({
       <section aria-label="Map modes" className="field-workspace-section">
         <div className="field-workspace-mode-row">
           <span aria-hidden="true" className="field-workspace-mode-icon">◐</span>
-          <span>Coloring</span>
+          <span>Colouring</span>
           <span className="field-workspace-mode-current">Current</span>
         </div>
         <div

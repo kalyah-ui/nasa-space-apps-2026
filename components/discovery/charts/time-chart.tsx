@@ -8,7 +8,7 @@ export type ChartPoint = { label: string; value: number | null };
 export type ChartSeries = {
   id: string;
   label: string;
-  /** CSS color, e.g. "var(--chart-rain)". Marks wear it; text never does. */
+  /** CSS colour, e.g., "var(--chart-rain)". Chart marks use it; text labels do not. */
   color: string;
   type: "bar" | "line";
   points: ChartPoint[];
@@ -154,7 +154,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
       ) : null}
 
       <div
-        aria-label={`${title}, in ${unit}. Use arrow keys to step through values; exact values are in the table below.`}
+        aria-label={`${title}, in ${unit}. Use the arrow keys to step through values; exact values are in the table below.`}
         className="chart-wrap"
         onBlur={() => setActiveIndex(null)}
         onFocus={() => setActiveIndex((current) => current ?? pointCount - 1)}

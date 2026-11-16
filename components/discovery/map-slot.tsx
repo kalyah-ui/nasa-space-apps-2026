@@ -5,7 +5,7 @@ import type { DiscoveryMapProps } from "./map-contract";
 /**
  * Placeholder for the real map component. Implements the DiscoveryMapProps
  * contract with schematic marker placement: lat/lon are projected linearly
- * into the box, so relative positions are right but it is not a real map.
+ * into the box, so relative positions are accurate, but it is not a real map.
  */
 export function MapSlot({
   markers,
@@ -53,7 +53,9 @@ export function MapSlot({
           </button>
         );
       })}
-      <p className="discovery-map-note">Schematic placement — interactive map lands here</p>
+      <p className="discovery-map-note">
+        A schematic map is shown. Configure Mapbox to enable the interactive map.
+      </p>
     </div>
   );
 }

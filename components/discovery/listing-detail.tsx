@@ -182,14 +182,14 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
 
           <div className="kpi-grid">
             <KpiTile
-              label="30-day rain"
+              label="30-day rainfall"
               loading={history.status === "loading"}
               note="NASA POWER"
               unit="mm"
               value={rain30 !== null ? formatNumber(rain30) : null}
             />
             <KpiTile
-              label="Avg temp (30d)"
+              label="Average temperature (30 days)"
               loading={history.status === "loading"}
               note="NASA POWER"
               unit="°C"
@@ -216,13 +216,13 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
             <blockquote className="listing-verdict">
               {verdict}
               <footer className="listing-verdict-tag">
-                Rule-based read, no AI involved <EstimateBadge />
+                Rule-based summary; no AI was used. <EstimateBadge />
               </footer>
             </blockquote>
           ) : null}
 
           <p className="listing-detail-price-row">
-            Asking <span className="listing-detail-price">${listing.priceCad.toLocaleString("en-US")}</span>{" "}
+            Asking price: <span className="listing-detail-price">${listing.priceCad.toLocaleString("en-US")}</span>{" "}
             · {listing.description}
           </p>
         </div>
