@@ -53,7 +53,7 @@ function FieldSnapshotInner({ latitude, longitude }: { latitude: number; longitu
     <section aria-labelledby="landing-snapshot-title" className="landing-section">
       <div className="landing-section-header">
         <h2 className="landing-section-title" id="landing-snapshot-title">
-          Ottawa Valley today
+          Ottawa Valley Today
         </h2>
         <p className="landing-section-note">
           Live regional conditions near the demo fields — not parcel measurements
@@ -216,6 +216,17 @@ function OttawaRegionalObservations() {
           value={soil && soilAvailable && soil.phCacl2 !== null ? formatNumber(soil.phCacl2, 1) : null}
         />
         <KpiTile
+          label="Recorded streamflow"
+          loading={state.status === "loading"}
+          note={sample?.hydrology_observation
+            ? `HYDAT · ${sample.hydrology_observation.observed_on} · ${formatNumber(sample.hydrology_observation.distance_km, 1)} km from area center`
+            : "HYDAT · historical gauge data"}
+          unit="m³/s"
+          value={sample?.hydrology_observation
+            ? formatNumber(sample.hydrology_observation.daily_flow_m3_s, 2)
+            : null}
+        />
+        <KpiTile
           label="Mean NDVI"
           loading={state.status === "loading"}
           note={
@@ -240,47 +251,61 @@ function OttawaRegionalObservations() {
                 {source.label} unavailable: {source.detail}
               </p>
             ))}
-          {soil &&
-          soilAvailable &&
-          soil.sandPct !== null &&
-          soil.siltPct !== null &&
-          soil.clayPct !== null ? (
-            <p className="landing-section-note">
-              CanSIS mapped texture (sand / silt / clay): {formatNumber(soil.sandPct, 1)}% /{" "}
-              {formatNumber(soil.siltPct, 1)}% / {formatNumber(soil.clayPct, 1)}%.
-            </p>
-          ) : null}
-          {sample.crop_class_counts.length > 0 ? (
-            <p className="landing-section-note">
-              2025 Ontario crop inventory
-              {sample.crop_class_counts.some((item) => !item.label)
-                ? " (unmatched classes shown by code)"
-                : ""}
-              :{" "}
-              {sample.crop_class_counts
-                .map(
-                  (item) =>
-                    `${item.label ?? `Class ${item.class_code}`}: ${formatNumber(item.field_share_pct, 1)}%`,
-                )
-                .join(" · ")}.
-            </p>
-          ) : null}
-          {sample.flood_map_studies.length > 0 ? (
-            <p className="landing-section-note">
-              Flood-map inventory:{" "}
-              {sample.flood_map_studies
-                .map(
-                  (study) =>
-                    `${study.study_name}${study.study_date ? ` (${study.study_date.slice(0, 4)})` : ""} — ${study.availability_status ?? "availability unknown"}`,
-                )
-                .join(" · ")}. Inventory coverage only; this is not a flood-hazard assessment.
-            </p>
-          ) : null}
-          <p className="landing-section-note">
-            Datasets sampled: {extractedSources || "none extracted"}. CanSIS is 1:1,000,000 regional
-            screening, not a soil test. NDVI is one satellite observation, not a crop-health
-            diagnosis.
-          </p>
+          <details className="landing-data-details">
+            <summary>Data sources and details</summary>
+            <div className="landing-data-details-content">
+              {soil &&
+              soilAvailable &&
+              soil.sandPct !== null &&
+              soil.siltPct !== null &&
+              soil.clayPct !== null ? (
+                <p className="landing-section-note">
+                  CanSIS mapped texture (sand / silt / clay): {formatNumber(soil.sandPct, 1)}% /{" "}
+                  {formatNumber(soil.siltPct, 1)}% / {formatNumber(soil.clayPct, 1)}%.
+                </p>
+              ) : null}
+              {sample.crop_class_counts.length > 0 ? (
+                <p className="landing-section-note">
+                  2025 Ontario crop inventory
+                  {sample.crop_class_counts.some((item) => !item.label)
+                    ? " (unmatched classes shown by code)"
+                    : ""}
+                  :{" "}
+                  {sample.crop_class_counts
+                    .map(
+                      (item) =>
+                        `${item.label ?? `Class ${item.class_code}`}: ${formatNumber(item.field_share_pct, 1)}%`,
+                    )
+                    .join(" · ")}.
+                </p>
+              ) : null}
+              {sample.flood_map_studies.length > 0 ? (
+                <p className="landing-section-note">
+                  Flood-map inventory:{" "}
+                  {sample.flood_map_studies
+                    .map(
+                      (study) =>
+                        `${study.study_name}${study.study_date ? ` (${study.study_date.slice(0, 4)})` : ""} — ${study.availability_status ?? "availability unknown"}`,
+                    )
+                    .join(" · ")}. Inventory coverage only; this is not a flood-hazard assessment.
+                </p>
+              ) : null}
+              {sample.hydrology_observation ? (
+                <p className="landing-section-note">
+                  HYDAT gauge: {sample.hydrology_observation.station_name} ({sample.hydrology_observation.station_number}).
+                  {sample.hydrology_observation.flow_symbol
+                    ? ` Measurement/river-condition code: ${sample.hydrology_observation.flow_symbol}.`
+                    : ""} Historical river flow, not live water availability or irrigation access;
+                  the nearest gauge may be in a different watershed.
+                </p>
+              ) : null}
+              <p className="landing-section-note">
+                Datasets sampled: {extractedSources || "none extracted"}. CanSIS is 1:1,000,000 regional
+                screening, not a soil test. NDVI is one satellite observation, not a crop-health
+                diagnosis.
+              </p>
+            </div>
+          </details>
         </>
       ) : state.status === "loading" ? (
         <p className="landing-section-note">Loading Ottawa-area observations…</p>

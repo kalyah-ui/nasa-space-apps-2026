@@ -13,7 +13,17 @@ export interface TerrainSample {
   crop_sample_count: number;
   landsat_observation: LandsatObservation | null;
   flood_map_studies: FloodMapStudyObservation[];
+  hydrology_observation?: HydrologyObservation | null;
   sources: SourceExtraction[];
+}
+
+export interface HydrologyObservation {
+  station_number: string;
+  station_name: string;
+  distance_km: number;
+  observed_on: string;
+  daily_flow_m3_s: number;
+  flow_symbol: string | null;
 }
 
 export interface LandsatObservation {

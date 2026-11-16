@@ -434,6 +434,33 @@ h1 {
   font-weight: 500;
 }
 
+.landing-data-details {
+  margin-top: var(--loam-space-4);
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 14px;
+}
+
+.landing-data-details > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.landing-data-details > summary:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 4px;
+}
+
+.landing-data-details-content {
+  display: grid;
+  gap: var(--loam-space-3);
+  padding-top: var(--loam-space-3);
+}
+
+.landing-data-details-content .landing-section-note {
+  line-height: 1.6;
+}
+
 .landing-section-note {
   margin: 0;
   color: var(--loam-muted);

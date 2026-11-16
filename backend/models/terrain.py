@@ -95,6 +95,15 @@ class FloodMapStudyObservation(BaseModel):
     public_link: str | None
 
 
+class HydrologyObservation(BaseModel):
+    station_number: str
+    station_name: str
+    distance_km: float
+    observed_on: str
+    daily_flow_m3_s: float
+    flow_symbol: str | None = None
+
+
 class TerrainSample(BaseModel):
     field_id: str
     field_name: str
@@ -108,4 +117,5 @@ class TerrainSample(BaseModel):
     crop_sample_count: int
     landsat_observation: LandsatObservation | None
     flood_map_studies: list[FloodMapStudyObservation]
+    hydrology_observation: HydrologyObservation | None = None
     sources: list[SourceExtraction]

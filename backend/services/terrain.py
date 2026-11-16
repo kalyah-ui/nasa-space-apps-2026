@@ -31,6 +31,7 @@ from backend.models.terrain import (
     TerrainSample,
 )
 from backend.services.gcs import get_bucket
+from backend.services.hydat import HYDAT_OBJECT, MAX_HYDAT_BYTES, sample_hydat
 
 SRTM_TIFF_PREFIX = "raw/srtm-global-1-arc-second:v003:ontario/"
 ACI_RASTER_OBJECT = "raw/annual-crop-inventory_2025_on_v1/aci_2025_on_v1.tif"
@@ -731,20 +732,38 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
             )
         )
 
-    sources.extend(
-        [
+    hydrology_observation = None
+    try:
+        configured_path = os.environ.get("HYDAT_SQLITE_PATH")
+        hydat_path = (
+            Path(configured_path) if configured_path
+            else _cached_gcs_file(HYDAT_OBJECT, MAX_HYDAT_BYTES)
+        )
+        hydrology_observation = sample_hydat(hydat_path, request.geometry)
+        sources.append(
             SourceExtraction(
                 source_id="water",
-                label="Water availability",
-                status="unavailable",
+                label="Regional streamflow (HYDAT)",
+                status="extracted" if hydrology_observation else "unavailable",
                 detail=(
-                    "HYDAT is present as a 1.21 GiB SQLite database, but no station-to-field "
-                    "spatial index or request-time query is configured."
+                    "Historical daily streamflow from the nearest gauge with records within "
+                    "50 km of the area centroid; not a measure of field water availability."
+                    if hydrology_observation else
+                    "No gauge with daily streamflow records was found within 50 km of the area centroid."
                 ),
-                source_objects=["raw/hydat_2026-10-19.sqlite3"],
-            ),
-        ]
-    )
+                source_objects=[HYDAT_OBJECT],
+            )
+        )
+    except Exception as error:
+        sources.append(
+            SourceExtraction(
+                source_id="water",
+                label="Regional streamflow (HYDAT)",
+                status="error",
+                detail=f"HYDAT extraction failed: {error}",
+                source_objects=[HYDAT_OBJECT],
+            )
+        )
 
     return TerrainSample(
         field_id=request.field_id,
@@ -759,5 +778,6 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
         crop_sample_count=crop_sample_count,
         landsat_observation=landsat_observation,
         flood_map_studies=flood_map_studies,
+        hydrology_observation=hydrology_observation,
         sources=sources,
     )
