@@ -11,6 +11,7 @@ import mapboxgl, {
 import {
   type ChangeEvent,
   type FormEvent,
+  type KeyboardEvent,
   useEffect,
   useRef,
   useState,
@@ -72,17 +73,90 @@ type SoilUploadStatus =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
 type DraftField = { drawId: string; geometry: FieldGeometry };
+type GeocodingFeature = {
+  id?: unknown;
+  geometry?: { coordinates?: unknown };
+  properties?: {
+    mapbox_id?: unknown;
+    full_address?: unknown;
+    name?: unknown;
+    place_formatted?: unknown;
+    match_code?: unknown;
+  };
+};
 type GeocodingResponse = {
-  features?: Array<{
-    geometry?: { coordinates?: unknown };
-    properties?: {
-      full_address?: unknown;
-      name?: unknown;
-      place_formatted?: unknown;
-    };
-  }>;
+  features?: GeocodingFeature[];
   message?: unknown;
 };
+type AddressSuggestion = {
+  id: string;
+  label: string;
+  coordinates: [longitude: number, latitude: number];
+  confidence: string | null;
+  approximate: boolean;
+};
+
+const addressSuggestionListId = "field-map-address-suggestions";
+
+function applyFieldOutlineVisibility(map: mapboxgl.Map, visible: boolean) {
+  if (map.getLayer(fieldOutlineLayerId)) {
+    map.setLayoutProperty(fieldOutlineLayerId, "visibility", visible ? "visible" : "none");
+  }
+}
+
+function getGeocodingLabel(feature: GeocodingFeature): string {
+  const properties = feature.properties;
+  return typeof properties?.full_address === "string"
+    ? properties.full_address
+    : [properties?.name, properties?.place_formatted]
+        .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+        .join(", ");
+}
+
+function toAddressSuggestion(
+  feature: GeocodingFeature,
+  index: number,
+): AddressSuggestion | null {
+  const coordinates = feature.geometry?.coordinates;
+  if (
+    !Array.isArray(coordinates) ||
+    typeof coordinates[0] !== "number" ||
+    typeof coordinates[1] !== "number"
+  ) {
+    return null;
+  }
+  const label = getGeocodingLabel(feature);
+  if (!label) return null;
+
+  const matchCode = feature.properties?.match_code;
+  const confidence =
+    matchCode &&
+    typeof matchCode === "object" &&
+    "confidence" in matchCode &&
+    typeof (matchCode as { confidence?: unknown }).confidence === "string"
+      ? (matchCode as { confidence: string }).confidence.toLowerCase()
+      : null;
+  const componentMatches =
+    matchCode && typeof matchCode === "object"
+      ? Object.entries(matchCode)
+          .filter(([key]) => key !== "confidence")
+          .map(([, value]) => value)
+      : [];
+  const approximate =
+    confidence === "medium" ||
+    confidence === "low" ||
+    componentMatches.some(
+      (value) => value === "inferred" || value === "plausible" || value === "unmatched",
+    );
+  const featureId = feature.properties?.mapbox_id ?? feature.id ?? `${label}-${index}`;
+  return {
+    id: String(featureId),
+    label,
+    coordinates: [coordinates[0], coordinates[1]],
+    confidence,
+    approximate,
+  };
+}
 
 function getFieldBounds(field: StoredFieldFeature) {
   const bounds = new mapboxgl.LngLatBounds();
@@ -179,8 +253,10 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   });
   const selectedFieldRef = useRef<StoredFieldFeature | null>(null);
   const selectedFeatureIdRef = useRef<string | null>(null);
+  const fieldOutlinesVisibleRef = useRef(true);
   const editingDrawIdRef = useRef<string | null>(null);
   const addressSearchAbortControllerRef = useRef<AbortController | null>(null);
+  const skipNextAddressAutocompleteRef = useRef(false);
   const elevationAbortControllerRef = useRef<AbortController | null>(null);
   const landsatAbortControllerRef = useRef<AbortController | null>(null);
   const soilAbortControllerRef = useRef<AbortController | null>(null);
@@ -188,7 +264,11 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   const [addressQuery, setAddressQuery] = useState("");
   const [addressSearchError, setAddressSearchError] = useState<string | null>(null);
   const [addressSearchResult, setAddressSearchResult] = useState<string | null>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [activeAddressSuggestion, setActiveAddressSuggestion] = useState(-1);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [isLoadingAddressSuggestions, setIsLoadingAddressSuggestions] = useState(false);
+  const [fieldOutlinesVisible, setFieldOutlinesVisible] = useState(true);
   const [fields, setFields] = useState<StoredFieldCollection>({
     type: "FeatureCollection",
     features: [],
@@ -428,6 +508,13 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               ],
             },
           });
+          applyFieldOutlineVisibility(map, fieldOutlinesVisibleRef.current);
+          if (selectedFeatureIdRef.current !== null) {
+            map.setFeatureState(
+              { source: fieldSourceId, id: selectedFeatureIdRef.current },
+              { selected: true },
+            );
+          }
           map.on("mouseenter", fieldFillLayerId, () => {
             if (draw.getMode() === "simple_select") {
               map?.getCanvas().style.setProperty("cursor", "pointer");
@@ -484,6 +571,85 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
       map?.remove();
     };
   }, []);
+
+  useEffect(() => {
+    fieldOutlinesVisibleRef.current = fieldOutlinesVisible;
+    const map = mapRef.current;
+    if (map && isMapReady) {
+      applyFieldOutlineVisibility(map, fieldOutlinesVisible);
+    }
+  }, [fieldOutlinesVisible, isMapReady]);
+
+  useEffect(() => {
+    if (skipNextAddressAutocompleteRef.current) {
+      skipNextAddressAutocompleteRef.current = false;
+      return;
+    }
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    const query = addressQuery.trim();
+    const map = mapRef.current;
+    if (!token || !map || query.length < 3) {
+      addressSearchAbortControllerRef.current?.abort();
+      setAddressSuggestions([]);
+      setActiveAddressSuggestion(-1);
+      setIsLoadingAddressSuggestions(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      addressSearchAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      addressSearchAbortControllerRef.current = controller;
+      const center = map.getCenter();
+      const parameters = new URLSearchParams({
+        access_token: token,
+        autocomplete: "true",
+        country: "ca",
+        language: "en",
+        limit: "5",
+        proximity: `${center.lng},${center.lat}`,
+        q: query,
+        types: "address,street,place,postcode,locality",
+      });
+      setIsLoadingAddressSuggestions(true);
+      setAddressSearchError(null);
+      void fetch(
+        `https://api.mapbox.com/search/geocode/v6/forward?${parameters.toString()}`,
+        { signal: controller.signal },
+      )
+        .then(async (response) => {
+          const data = (await response.json()) as GeocodingResponse;
+          if (!response.ok) {
+            throw new Error(
+              typeof data.message === "string" ? data.message : "Address suggestions failed.",
+            );
+          }
+          const suggestions = (data.features ?? []).flatMap((feature, index) => {
+            const suggestion = toAddressSuggestion(feature, index);
+            return suggestion ? [suggestion] : [];
+          });
+          setAddressSuggestions(suggestions);
+          setActiveAddressSuggestion(suggestions.length > 0 ? 0 : -1);
+        })
+        .catch((error) => {
+          if (!(error instanceof DOMException && error.name === "AbortError")) {
+            setAddressSuggestions([]);
+            setActiveAddressSuggestion(-1);
+            setAddressSearchError(
+              error instanceof Error ? error.message : "Address suggestions failed.",
+            );
+          }
+        })
+        .finally(() => {
+          if (addressSearchAbortControllerRef.current === controller) {
+            addressSearchAbortControllerRef.current = null;
+            setIsLoadingAddressSuggestions(false);
+          }
+        });
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [addressQuery]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -996,6 +1162,45 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     request.send(form);
   }
 
+  function showAddressSuggestion(suggestion: AddressSuggestion) {
+    const map = mapRef.current;
+    if (!map) return;
+    addressSearchAbortControllerRef.current?.abort();
+    skipNextAddressAutocompleteRef.current = true;
+    setAddressQuery(suggestion.label);
+    setAddressSuggestions([]);
+    setActiveAddressSuggestion(-1);
+    setAddressSearchError(null);
+    setAddressSearchResult(suggestion.label);
+    setIsLoadingAddressSuggestions(false);
+    map.flyTo({
+      center: suggestion.coordinates,
+      duration: 1200,
+      zoom: 17,
+    });
+  }
+
+  function handleAddressInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (addressSuggestions.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveAddressSuggestion((current) =>
+        current >= addressSuggestions.length - 1 ? 0 : current + 1,
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveAddressSuggestion((current) =>
+        current <= 0 ? addressSuggestions.length - 1 : current - 1,
+      );
+    } else if (event.key === "Enter" && activeAddressSuggestion >= 0) {
+      event.preventDefault();
+      showAddressSuggestion(addressSuggestions[activeAddressSuggestion]);
+    } else if (event.key === "Escape") {
+      setAddressSuggestions([]);
+      setActiveAddressSuggestion(-1);
+    }
+  }
+
   async function handleAddressSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -1008,6 +1213,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     addressSearchAbortControllerRef.current = controller;
     setAddressSearchError(null);
     setAddressSearchResult(null);
+    setAddressSuggestions([]);
+    setActiveAddressSuggestion(-1);
     setIsSearchingAddress(true);
     try {
       const parameters = new URLSearchParams({
@@ -1048,6 +1255,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
         duration: 1200,
         zoom: 17,
       });
+      skipNextAddressAutocompleteRef.current = true;
+      setAddressQuery(label || query);
       setAddressSearchResult(label || query);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -1085,11 +1294,24 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               Farm address
             </label>
             <input
+              aria-activedescendant={
+                activeAddressSuggestion >= 0
+                  ? `field-map-address-suggestion-${activeAddressSuggestion}`
+                  : undefined
+              }
+              aria-autocomplete="list"
+              aria-controls={addressSuggestionListId}
+              aria-expanded={addressSuggestions.length > 0}
               autoComplete="street-address"
               id="field-map-address"
               maxLength={256}
-              onChange={(event) => setAddressQuery(event.target.value)}
+              onChange={(event) => {
+                setAddressQuery(event.target.value);
+                setAddressSearchResult(null);
+              }}
+              onKeyDown={handleAddressInputKeyDown}
               placeholder="Search a farm address"
+              role="combobox"
               type="search"
               value={addressQuery}
             />
@@ -1099,6 +1321,39 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
             >
               {isSearchingAddress ? "Searching…" : "Search"}
             </button>
+            {addressSuggestions.length > 0 ? (
+              <div
+                aria-label="Address suggestions"
+                className="field-map-address-suggestions"
+                id={addressSuggestionListId}
+                role="listbox"
+              >
+                {addressSuggestions.map((suggestion, index) => (
+                  <button
+                    aria-selected={activeAddressSuggestion === index}
+                    className={activeAddressSuggestion === index ? "is-active" : undefined}
+                    id={`field-map-address-suggestion-${index}`}
+                    key={suggestion.id}
+                    onClick={() => showAddressSuggestion(suggestion)}
+                    onMouseEnter={() => setActiveAddressSuggestion(index)}
+                    role="option"
+                    type="button"
+                  >
+                    <span>{suggestion.label}</span>
+                    {suggestion.approximate ? (
+                      <small>Approximate match</small>
+                    ) : suggestion.confidence ? (
+                      <small>{suggestion.confidence} confidence</small>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {isLoadingAddressSuggestions && addressSuggestions.length === 0 ? (
+              <span aria-live="polite" className="field-map-address-feedback">
+                Finding address suggestions...
+              </span>
+            ) : null}
             {addressSearchError ? (
               <span className="field-map-address-feedback is-error" role="alert">
                 {addressSearchError}
@@ -1112,6 +1367,18 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
           </form>
 
           <div aria-label="Field tools" className="field-map-field-tools">
+            <button
+              aria-checked={fieldOutlinesVisible}
+              className="field-map-outline-toggle"
+              onClick={() => setFieldOutlinesVisible((visible) => !visible)}
+              role="switch"
+              type="button"
+            >
+              <span>Field outlines</span>
+              <span aria-hidden="true" className="field-map-switch-track">
+                <span className="field-map-switch-thumb" />
+              </span>
+            </button>
             <button
               disabled={isSavingField || Boolean(draftField) || isEditingBoundary}
               onClick={beginAddField}

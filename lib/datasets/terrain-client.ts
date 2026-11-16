@@ -83,6 +83,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Older backend revisions omit newer observations; validate before rendering. */
+export function normalizeTerrainSample(value: unknown): TerrainSample {
+  if (!isRecord(value) || !Array.isArray(value.soil_landscapes) || !Array.isArray(value.sources)) {
+    throw new Error("The terrain service returned an invalid response. Expected soil landscapes and source information.");
+  }
+  for (const key of ["crop_class_counts", "flood_map_studies"] as const) {
+    if (value[key] != null && !Array.isArray(value[key])) {
+      throw new Error(`The terrain service returned an invalid ${key} list.`);
+    }
+  }
+  return {
+    ...value,
+    crop_class_counts: value.crop_class_counts ?? [],
+    flood_map_studies: value.flood_map_studies ?? [],
+  } as unknown as TerrainSample;
+}
+
 function sceneCoordinate(value: unknown, label: string): [number, number] {
   if (
     !Array.isArray(value) ||
@@ -151,5 +168,5 @@ export async function getTerrainSample(field: FieldOption, signal?: AbortSignal)
     throw new Error(message);
   }
 
-  return response.json() as Promise<TerrainSample>;
+  return normalizeTerrainSample(await response.json());
 }

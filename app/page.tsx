@@ -18,8 +18,8 @@ export default function HomePage() {
         </h1>
         <p className="landing-hero-tagline">The dirt on your dirt.</p>
         <p className="landing-hero-description">
-          NASA Earth observation and open agricultural data, read together — so you can judge what
-          a parcel supports today, and whether it still will in ten years.
+          NASA Earth observation and agricultural data put simply. <br />
+          Improving your land now and in years to come.
         </p>
       </section>
 
