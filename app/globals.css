@@ -2007,6 +2007,77 @@ h1 {
   opacity: 0.55;
 }
 
+.field-map-address-suggestions {
+  display: grid;
+  max-height: 230px;
+  grid-column: 1 / -1;
+  gap: 2px;
+  overflow-y: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--loam-map-border);
+}
+
+.field-map-address-suggestions button {
+  display: grid;
+  gap: 2px;
+  border: 0;
+  border-radius: 5px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--loam-map-text);
+  text-align: left;
+}
+
+.field-map-address-suggestions button:hover,
+.field-map-address-suggestions button.is-active {
+  background: var(--loam-accent-soft);
+  color: var(--loam-map-accent);
+}
+
+.field-map-address-suggestions small {
+  color: var(--loam-map-muted);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.field-map-outline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-map-switch-track {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border: 1px solid var(--loam-map-muted);
+  border-radius: 999px;
+  background: var(--loam-map-raised);
+  transition: background-color 130ms ease;
+}
+
+.field-map-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--loam-map-muted);
+  transition: transform 130ms ease, background-color 130ms ease;
+}
+
+.field-map-outline-toggle[aria-checked="true"] .field-map-switch-track {
+  border-color: var(--loam-map-accent);
+  background: var(--loam-accent-soft);
+}
+
+.field-map-outline-toggle[aria-checked="true"] .field-map-switch-thumb {
+  background: var(--loam-map-accent);
+  transform: translateX(12px);
+}
+
 .field-map-address-feedback {
   grid-column: 1 / -1;
   padding: 5px 10px 3px;
