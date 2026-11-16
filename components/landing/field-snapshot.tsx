@@ -152,7 +152,7 @@ function OttawaRegionalObservations() {
       <div aria-labelledby="landing-regional-title" className="landing-subsection">
         <div className="landing-section-header">
           <h3 className="landing-subsection-title" id="landing-regional-title">
-            Regional observations
+            Regional Observations
           </h3>
         </div>
         <p className="source-muted" role="status">
@@ -176,7 +176,7 @@ function OttawaRegionalObservations() {
     <div aria-labelledby="landing-regional-title" className="landing-subsection">
       <div className="landing-section-header">
         <h3 className="landing-subsection-title" id="landing-regional-title">
-          Regional observations
+          Regional Observations
         </h3>
         <p className="landing-section-note">
           SRTM terrain · Landsat 8 vegetation · CanSIS soil mapping, sampled over the Landsat scene footprint

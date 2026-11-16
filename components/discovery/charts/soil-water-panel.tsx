@@ -43,7 +43,7 @@ export function SoilWaterPanel({ forecast, onRetry }: SoilWaterPanelProps) {
             })),
           },
         ]}
-        title="Soil moisture — 7-day forecast (3–9 cm)"
+        title="Soil Moisture — 7-Day Forecast (3–9 cm)"
         unit="vol %"
       />
 
@@ -58,7 +58,7 @@ export function SoilWaterPanel({ forecast, onRetry }: SoilWaterPanelProps) {
             points: days.map((day, index) => ({ label: labels[index], value: day.soilTempC })),
           },
         ]}
-        title="Soil temperature — 7-day forecast (6 cm)"
+        title="Soil Temperature — 7-Day Forecast (6 cm)"
         unit="°C"
       />
 
@@ -73,7 +73,7 @@ export function SoilWaterPanel({ forecast, onRetry }: SoilWaterPanelProps) {
             points: days.map((day, index) => ({ label: labels[index], value: day.et0Mm })),
           },
         ]}
-        title="Evapotranspiration (ET0) — 7-day forecast"
+        title="Evapotranspiration (ET0) — 7-Day Forecast"
         unit="mm"
       />
     </>

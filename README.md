@@ -1,5 +1,5 @@
-# loam
-### The dirt on your dirt.
+# Loam
+### The Dirt on Your Dirt.
 
 loam helps farmers and future landowners evaluate land, understand field conditions, compare crop rotations, and explore long-term resilience using Earth observation and agricultural data.
 
@@ -29,7 +29,7 @@ npm run dev
 
 Open http://localhost:3000.
 
-#### Private SRTM elevation overlay
+#### Private SRTM Elevation Overlay
 
 The field map reads SRTM tiles from the private
 `nasa_spaceapps_2026_loam` bucket through a server-only Next.js API route.
@@ -47,7 +47,7 @@ overridden server-side with `GOOGLE_CLOUD_PROJECT`, `SRTM_GCS_BUCKET`, and
 `SRTM_GCS_PREFIX`; do not use `NEXT_PUBLIC_` variables for credentials or
 bucket access.
 
-#### Landsat true colour and NDVI
+#### Landsat True Colour and NDVI
 
 The original objects under
 `raw/landsat-surface-reflectance-collection-2-level-2-ontario/` were inspected
@@ -103,7 +103,7 @@ To test the map:
 
 Server-side overrides are `LANDSAT_GCS_BUCKET` and `LANDSAT_GCS_PREFIX`.
 
-#### Field boundaries
+#### Field Boundaries
 
 Field boundaries are persisted by the Next.js server in the private GCS object
 `processed/fields/ontario-fields.geojson`. The browser requests them through
@@ -143,7 +143,7 @@ To test locally:
 6. Select **Elevation**, click a covered field, and verify the clipped elevation
    overlay and metre legend appear.
 
-#### CanSIS regional soil suitability and soil CSV uploads
+#### CanSIS Regional Soil Suitability and Soil CSV Uploads
 
 The **Productivity map** control displays regional soil-suitability polygons
 prepared from AAFC CanSIS Soil Landscapes of Canada v3.2. It is intentionally
@@ -203,7 +203,7 @@ The suitability rules and official source URLs live in
 `lib/soil/suitability.ts`. No official crop-specific LSRS rating table was
 present in the bucket, so the app does not claim these categories are LSRS.
 
-#### Public deployment with private map data
+#### Public Deployment with Private Map Data
 
 The public website can display all map layers while the bucket remains private.
 Deploy the **Next.js application**, not only the FastAPI `Dockerfile`, because
@@ -280,7 +280,7 @@ export GEMINI_MODEL="gemini-2.5-flash"
 uvicorn backend.main:app --reload
 ```
 
-## Accessing shared Earth-observation data
+## Accessing Shared Earth-Observation Data
 
 After datasets have been uploaded, team members can browse or download them
 from the private Google Cloud Storage bucket. The current bucket name is
@@ -312,7 +312,7 @@ Only copy the dataset and time range needed for your task. Cloud Storage
 access, downloads, and storage may incur charges on the bucket's billing
 account; check with the data lead before retrieving large datasets.
 
-### Read a NetCDF4 file with Python
+### Read a NetCDF4 File with Python
 
 For local Python access, install the libraries and authenticate with
 Application Default Credentials:
@@ -360,7 +360,7 @@ account or workload identity for server-side bucket access. Do not make the
 bucket public, put credentials in the frontend, or commit service-account key
 files or Earthdata credentials.
 
-### Application data API
+### Application Data API
 
 The FastAPI backend lists and streams objects from the approved `raw/`,
 `processed/`, and `catalogs/` prefixes. It uses Application Default Credentials
@@ -387,7 +387,7 @@ or STAC assets into field-layer samples. Keep `NEXT_PUBLIC_DATA_PROVIDER=mock`
 until a dataset-specific adapter and its spatial/temporal semantics are
 validated.
 
-### STAC catalogs and file naming
+### STAC Catalogs and File Naming
 
 A STAC catalog is a metadata index with links to assets; it is not the data
 itself. Harmony-generated catalogs can point to temporary output URLs that

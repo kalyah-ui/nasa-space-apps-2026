@@ -1,10 +1,10 @@
-# Keyless storage access from Vercel
+# Keyless Storage Access from Vercel
 
 The Next.js server supports Vercel OIDC through Google Workload Identity
 Federation. Service account key creation can remain disabled. This setup grants
 the production deployment read access to the existing private data bucket.
 
-## 1. Vercel identity
+## 1. Vercel Identity
 
 For the supplied Vercel dashboard URL:
 
@@ -15,7 +15,7 @@ For the supplied Vercel dashboard URL:
 In the Vercel project's Settings, find **Secure backend access with OIDC
 federation** (under Security) and use the **Team** issuer mode.
 
-## 2. Google Cloud trust
+## 2. Google Cloud Trust
 
 Select project `project-940193e6-7c25-4e42-abf` (number `139484231017`). Enable the IAM, Security Token Service,
 and IAM Service Account Credentials APIs in **APIs & Services → Library**.
@@ -34,7 +34,7 @@ ID `vercel`, and an OIDC provider with ID `vercel`. Set:
 Leave the JWK upload empty. This app uses the standard Vercel token audience;
 do not choose Google's Default audience option for this implementation.
 
-## 3. Connect the service account
+## 3. Connect the Service Account
 
 Use service account
 `loam-vercel@project-940193e6-7c25-4e42-abf.iam.gserviceaccount.com`.
@@ -51,7 +51,7 @@ account email **Storage Object Viewer**. This allows reading the map datasets.
 Saving/deleting fields and uploading CSVs require additional write permissions;
 configure those separately if needed.
 
-## 4. Vercel environment variables
+## 4. Vercel Environment Variables
 
 Set these for **Production**:
 
@@ -74,7 +74,7 @@ Preview deployments are excluded by this configuration. To enable them, add
 their exact subject to both the provider condition and service account binding,
 then configure the variables for Preview too.
 
-## 5. Deploy and verify
+## 5. Deploy and Verify
 
 Deploy the updated code and environment settings. Check that
 `processed/fields/ontario-fields.geojson` exists in the private bucket, then open

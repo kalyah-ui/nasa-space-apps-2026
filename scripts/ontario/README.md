@@ -1,4 +1,4 @@
-# Ontario field crop budgets
+# Ontario Field Crop Budgets
 
 `ontario-field-crop-budgets-2026.csv` contains the nine scenarios from the
 comparison table on printed page 2 of Ontario Publication 60. Costs are sample

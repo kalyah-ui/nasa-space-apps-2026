@@ -51,7 +51,7 @@ export function FieldInsights({ sample, fieldSoil }: { sample: TerrainSample; fi
 
       <section aria-labelledby="soil-profile-title" className="rotation-section">
         <p className="eyebrow">Landscape soil estimate</p>
-        <h2 id="soil-profile-title">Surface soil profile</h2>
+        <h2 id="soil-profile-title">Surface Soil Profile</h2>
         {fieldSoil.sandPct === null || fieldSoil.siltPct === null || fieldSoil.clayPct === null ? (
           <p className="rotation-provenance">Surface texture values are not available for this field.</p>
         ) : (

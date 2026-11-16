@@ -1,5 +1,5 @@
-# loam
-### The dirt on your dirt.
+# Loam
+### The Dirt on Your Dirt.
 
 NASA Space Apps Challenge project
 
@@ -314,7 +314,7 @@ loam/
 
 # Hackathon MVP Priorities
 
-## Must Have
+## Must-Have
 
 ✅ Homepage
 
@@ -329,7 +329,7 @@ loam/
 
 ---
 
-## Nice To Have
+## Nice to Have
 
 ✅ Rotation Planner
 

@@ -17,9 +17,9 @@ export default function HomePage() {
         <div className="landing-hero-content">
           <p className="eyebrow">Land intelligence for a changing climate</p>
           <h1 className="landing-hero-name" id="landing-hero-title">
-            loam
+            Loam
           </h1>
-          <p className="landing-hero-tagline">The dirt on your dirt.</p>
+          <p className="landing-hero-tagline">The Dirt on Your Dirt.</p>
           <p className="landing-hero-description">
             NASA Earth observation and agricultural data put simply. <br />
             Improving your land now and in years to come.
@@ -42,7 +42,7 @@ export default function HomePage() {
         />
       </section>
 
-      <div aria-label="loam workflows" className="workflow-grid">
+      <div aria-label="Loam Workflows" className="workflow-grid">
         {workflows.map((workflow) => (
           <Link className="workflow-card" href={workflow.href} key={workflow.href}>
             <h2 className="workflow-title">{workflow.title}</h2>

@@ -308,7 +308,7 @@ export function TimeChart({ title, unit, series, decimals = 1 }: TimeChartProps)
       </div>
 
       <details className="chart-table">
-        <summary>View as table</summary>
+        <summary>View as Table</summary>
         <div className="chart-table-scroll">
           <table>
             <thead>

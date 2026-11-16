@@ -6,7 +6,7 @@ export const regionalSoilProviderConfig = {
   endpoint: "/api/soil-regions",
   source: "AAFC CanSIS SLC v3.2",
   scale: "1:1,000,000",
-  title: "Regional soil suitability — not measured productivity",
+  title: "Regional Soil Suitability — Not Measured Productivity",
 } as const;
 
 function createDataProvider(): DataProvider {

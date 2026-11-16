@@ -507,7 +507,7 @@ export function CropRotationBuilder({
                   </div>
                 </dl>
                 <details className="rotation-scenario-details">
-                  <summary>How this scenario works</summary>
+                  <summary>How This Scenario Works</summary>
                   <p className="rotation-scenario-note">{scenario.note}</p>
                 </details>
               </>
@@ -523,7 +523,7 @@ export function CropRotationBuilder({
         <div className="rotation-section-heading">
           <div>
             <p className="eyebrow">Year-by-year plan</p>
-            <h3 id="season-schedule-title">Crop rotation schedule</h3>
+            <h3 id="season-schedule-title">Crop Rotation Schedule</h3>
           </div>
           <button className="crop-add-button season-add-button" onClick={addSeason} type="button">
             <Plus aria-hidden="true" size={16} />
@@ -604,7 +604,7 @@ export function CropRotationBuilder({
         <div className="rotation-section-heading">
           <div>
             <p className="eyebrow">Results</p>
-            <h2 id="crop-results-title">Rotation scenarios for {fieldName}</h2>
+            <h2 id="crop-results-title">Rotation Scenarios for {fieldName}</h2>
           </div>
           <button className="wizard-back" onClick={onEditCrops} type="button">
             ← Edit crops
@@ -624,9 +624,9 @@ export function CropRotationBuilder({
   return (
     <section aria-labelledby="crop-plan-title" className="rotation-section">
       <p className="eyebrow">Your crop choices</p>
-      <h2 id="crop-plan-title">Plan a crop rotation</h2>
+      <h2 id="crop-plan-title">Plan a Crop Rotation</h2>
       <details className="crop-budget-source">
-        <summary>About Ontario budget estimates</summary>
+        <summary>About Ontario Budget Estimates</summary>
         <p className="rotation-provenance">
           <a href="https://www.ontario.ca/page/publication-60-field-crop-budgets" target="_blank" rel="noreferrer">Ontario Publication 60, 2026</a>: sample costs based on assumed practices and yields; input prices projected in November 2025. Actual field costs can differ. Margin estimates exclude land rent and other farm-specific costs.
         </p>
@@ -684,7 +684,7 @@ export function CropRotationBuilder({
         })()}
 
         <fieldset className="crop-choice-fieldset">
-          <legend>Crops you want to plant</legend>
+          <legend>Crops You Want to Plant</legend>
           {desiredCrops.length === 0 && (
             <p className="rotation-provenance">Add crops you want to consider and their relative water demand.</p>
           )}

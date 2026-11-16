@@ -126,7 +126,7 @@ export function RotationPlanner() {
 
       {step === 1 && (
         <section aria-labelledby="wizard-field-title" className="rotation-section">
-          <h2 id="wizard-field-title">Choose a field</h2>
+          <h2 id="wizard-field-title">Choose a Field</h2>
           <p className="rotation-provenance">
             Soil and terrain context for this field loads in the background and appears with your
             results.

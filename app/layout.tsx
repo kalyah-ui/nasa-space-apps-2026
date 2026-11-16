@@ -5,7 +5,7 @@ import "./globals.css";
 import "../styles/glass.css";
 
 export const metadata: Metadata = {
-  title: "loam | The dirt on your dirt.",
+  title: "Loam | The Dirt on Your Dirt.",
   description: "The dirt on your dirt. Earth observation insights for resilient farming decisions.",
 };
 

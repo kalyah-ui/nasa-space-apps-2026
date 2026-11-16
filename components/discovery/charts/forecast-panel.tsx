@@ -90,7 +90,7 @@ export function ForecastPanel({ forecast, onRetry }: ForecastPanelProps) {
             })),
           },
         ]}
-        title="Precipitation — next 7 days"
+        title="Precipitation — Next 7 Days"
         unit="mm"
       />
 
