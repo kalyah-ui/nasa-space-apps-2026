@@ -45,23 +45,6 @@
   --glass-opaque: rgb(250 252 246 / 97%);
 }
 
-/* The field workspace and the Discovery map keep dark glass in BOTH themes
-   (anything map-like stays dark). */
-.field-workspace,
-.discovery-map {
-  --glass-tint: rgb(21 30 24 / 60%);
-  --glass-tint-strong: rgb(21 30 24 / 80%);
-  --glass-tint-hover: rgb(34 46 37 / 68%);
-  --glass-tint-active: rgb(28 39 31 / 74%);
-  --glass-border: rgb(237 242 232 / 13%);
-  --glass-border-strong: rgb(237 242 232 / 24%);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 7%);
-  --glass-shadow: 0 12px 32px rgb(0 0 0 / 38%), 0 2px 8px rgb(0 0 0 / 26%);
-  --glass-shadow-soft: 0 6px 18px rgb(0 0 0 / 30%);
-  --glass-focus-ring: 0 0 0 3px rgb(182 214 129 / 22%);
-  --glass-opaque: rgb(23 32 26 / 97%);
-}
-
 /* --- Surfaces ----------------------------------------------------------- */
 
 .glass-panel {
@@ -129,8 +112,8 @@
 }
 
 .glass-chip--accent {
-  border-color: rgb(182 214 129 / 28%);
-  background: rgb(182 214 129 / 9%);
+  border-color: var(--loam-accent);
+  background: var(--loam-accent-soft);
   color: var(--loam-accent);
 }
 
