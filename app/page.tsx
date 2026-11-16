@@ -42,19 +42,17 @@ export default function HomePage() {
         />
       </section>
 
-      <FieldSnapshot />
-
-      <div aria-label="loam workflows" className="workflow-list">
+      <div aria-label="loam workflows" className="workflow-grid">
         {workflows.map((workflow) => (
-          <Link className="workflow-link" href={workflow.href} key={workflow.href}>
-            <div>
-              <h2 className="workflow-title">{workflow.title}</h2>
-              <p className="workflow-description">{workflow.description}</p>
-            </div>
+          <Link className="workflow-card" href={workflow.href} key={workflow.href}>
+            <h2 className="workflow-title">{workflow.title}</h2>
+            <p className="workflow-description">{workflow.description}</p>
             <span aria-hidden="true" className="workflow-arrow">→</span>
           </Link>
         ))}
       </div>
+
+      <FieldSnapshot />
     </SiteShell>
   );
 }

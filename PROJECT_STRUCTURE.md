@@ -1,7 +1,7 @@
 # loam
 ### The dirt on your dirt.
 
-NASA Space Apps Challenge Project
+NASA Space Apps Challenge project
 
 ---
 
@@ -11,7 +11,7 @@ loam helps farmers and landowners answer:
 
 > Is this land suitable for my goals today?
 
-Using NASA Earth Observation data, agricultural datasets, and explainable recommendations, loam helps users:
+Using NASA Earth observation data, agricultural datasets, and explainable recommendations, loam helps users:
 
 1. Evaluate farmland before purchase
 2. Understand current field conditions
@@ -28,14 +28,14 @@ Evaluate potential farmland.
 
 Outputs:
 
-- Overall Farm Score
-- Soil Score
-- Water Availability Score
-- Flood Risk
-- Erosion Risk
-- Heat Risk
-- Recommended Crops
-- Unsuitable Crops
+- Overall farm score
+- Soil score
+- Water availability score
+- Flood risk
+- Erosion risk
+- Heat risk
+- Recommended crops
+- Unsuitable crops
 
 Datasets:
 
@@ -51,15 +51,15 @@ Datasets:
 
 ## 2. Field Info
 
-Current field insights.
+View current field insights.
 
 Outputs:
 
-- Current Soil Moisture
-- Recent Rainfall
-- Vegetation Health
-- Terrain Information
-- Historical Trends
+- Current soil moisture
+- Recent rainfall
+- Vegetation health
+- Terrain information
+- Historical trends
 
 Datasets:
 
@@ -77,17 +77,17 @@ Compare multiple rotation strategies.
 
 Options:
 
-- Current Rotation
-- Profit Focused
-- Water Conservation
-- Soil Regeneration
+- Current rotation
+- Profit-focused
+- Water conservation
+- Soil regeneration
 
 Outputs:
 
-- Water Usage
-- Soil Health Impact
-- Resilience Score
-- Market Viability
+- Water usage
+- Soil health impact
+- Resilience score
+- Market viability
 
 Datasets:
 
@@ -159,7 +159,7 @@ Owns:
 
 Responsibilities:
 
-- Farm Score calculations
+- Farm score calculations
 - Crop recommendations
 - Rotation scoring
 
@@ -211,7 +211,7 @@ Frontend:
 - Next.js
 - React
 - TypeScript
-- TailwindCSS
+- Tailwind CSS
 
 Maps:
 
@@ -255,7 +255,6 @@ loam/
 │   ├── field-info/
 │   │   └── page.tsx
 │   ├── rotation-planner/
-│   │   └── page.tsx
 │   │   └── page.tsx
 │
 ├── components/
@@ -352,12 +351,12 @@ loam/
 
 # Demo Flow
 
-1. Introduce Local Farmer
-2. Show Real Community Problem
-3. Select Local Farm Parcel
-4. Farm Discovery Analysis
-6. Rotation Recommendations
-8. Close With NASA Data Making Local Decisions Easier
+1. Introduce a local farmer.
+2. Show a real community problem.
+3. Select a local farm parcel.
+4. Review the farm discovery analysis.
+5. Explore rotation recommendations.
+6. Close with NASA data making local decisions easier.
 
 ---
 

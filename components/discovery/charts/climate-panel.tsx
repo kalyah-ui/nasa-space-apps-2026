@@ -133,14 +133,14 @@ export function ClimatePanel({ history, normals, onRetryHistory, onRetryNormals 
       <div className="kpi-grid">
         <div className="kpi-tile">
           <span className="kpi-tile-label">
-            GDD, 90 days <EstimateBadge title={estimateFormulas.growingDegreeDays} />
+            Growing degree days (90 days) <EstimateBadge title={estimateFormulas.growingDegreeDays} />
           </span>
           <span className="kpi-tile-value">{gdd === null ? "—" : formatNumber(gdd)}</span>
-          <span className="kpi-tile-note">base 10°C</span>
+          <span className="kpi-tile-note">Base temperature: 10°C</span>
         </div>
         <div className="kpi-tile">
           <span className="kpi-tile-label">
-            Frost days, 90d <EstimateBadge title={estimateFormulas.frostRiskDays} />
+            Frost days (90 days) <EstimateBadge title={estimateFormulas.frostRiskDays} />
           </span>
           <span className="kpi-tile-value">{frost === null ? "—" : formatNumber(frost)}</span>
           <span className="kpi-tile-note">nights at or below 0°C</span>
@@ -151,7 +151,7 @@ export function ClimatePanel({ history, normals, onRetryHistory, onRetryNormals 
           </span>
           <span className="kpi-tile-value">{dryness === null ? "—" : formatNumber(dryness, 2)}</span>
           <span className="kpi-tile-note">
-            {dryness === null ? "needs normals" : drynessLabel(dryness)}
+            {dryness === null ? "Normals required" : drynessLabel(dryness)}
           </span>
         </div>
       </div>

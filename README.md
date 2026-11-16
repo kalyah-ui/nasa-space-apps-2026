@@ -83,8 +83,9 @@ To test the map:
 
 1. Start the app with `npm run dev` and open `http://localhost:3000/field-info`.
 2. Click inside an official field polygon.
-3. Select **Satellite image** and verify true colour, image date, average NDVI,
-   clear/QA-masked percentages, source, and scene ID appear.
+3. Select **Satellite image** and verify that the true-colour image, acquisition
+   date, average NDVI, clear-pixel and QA-masked percentages, source, and scene
+   ID are displayed.
 4. Select **NDVI** and verify the clipped overlay and `-1` to `1` legend appear.
 5. To exercise the fallback without changing stored fields, POST an Ontario
    polygon outside the sample crop to `/api/landsat`, for example:
@@ -97,8 +98,8 @@ To test the map:
 
    The response should report `"provider":"planetary-computer"`. If no scene
    has at least 20% clear field pixels, the API and map show a too-cloudy
-   message. A field too small for a usable 30 m pixel receives a specific
-   field-too-small message.
+   message. If a field is too small to contain a usable 30 m pixel, the API
+   returns a specific message.
 
 Server-side overrides are `LANDSAT_GCS_BUCKET` and `LANDSAT_GCS_PREFIX`.
 
@@ -122,7 +123,7 @@ node scripts/extract-ontario-fields.mjs
 npm run publish:fields
 ```
 
-The extraction defaults to a 10 km window centered near Arnprior. Override it
+The extraction defaults to a 10 km window centred near Arnprior. Override it
 with `ONTARIO_FIELDS_CENTER_LON`, `ONTARIO_FIELDS_CENTER_LAT`, and
 `ONTARIO_FIELDS_WINDOW_KM`. The source GeoPackage and generated runtime GeoJSON
 are ignored by Git because of their size and local mutability. The publish step
@@ -136,8 +137,8 @@ To test locally:
 2. Click **Add field**, draw at least three points, double-click to finish, name
    the field, and save it.
 3. Click inside any field and verify the outline highlights, the map zooms to
-   it, and the Selected plot panel shows its name, area, and field ID.
-4. Use **Rename**, **Edit boundary**, and **Delete** in the Selected plot panel.
+   it, and the Selected field panel shows its name, area, and field ID.
+4. Use **Rename**, **Edit boundary**, and **Delete** in the Selected field panel.
 5. Upload a GeoJSON or KML file containing Polygon or MultiPolygon features.
 6. Select **Elevation**, click a covered field, and verify the clipped elevation
    overlay and metre legend appear.
@@ -175,11 +176,11 @@ To test locally:
 
 1. Run `npm run dev`, open `http://localhost:3000/field-info`, and select
    **Productivity map**.
-2. Switch among corn, soybean, winter wheat, canola and forage. Verify that the
+2. Switch among corn, soybean, winter wheat, canola, and forage. Verify that the
    regional polygon colours and ratings update and that the legend includes
    Good, Moderate, Limited and Insufficient data.
 3. Click a coloured region and verify texture percentages, pH, drainage,
-   organic carbon, rooting depth, limiting factors, components, source and the
+   organic carbon, rooting depth, limiting factors, components, source, and the
    regional-estimate note appear.
 4. Select **Ontario Field 565252** to exercise a known field crossing two SLC
    regions. The current prepared data reports approximately 94.5% in polygon

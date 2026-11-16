@@ -21,7 +21,7 @@ import type { DailyHistory, Forecast } from "@/lib/weather/types";
 const ottawaValleyCenter = { latitude: 45.3083, longitude: -76.2925 };
 
 /**
- * The weather strip uses live regional data at the center of the Ottawa Landsat scene.
+ * The weather strip uses live regional data at the centre of the Ottawa Landsat scene.
  */
 export function FieldSnapshot() {
   return (
@@ -50,34 +50,33 @@ function FieldSnapshotInner({ latitude, longitude }: { latitude: number; longitu
     forecast.status === "ready" ? (forecast.data?.days[0]?.soilMoisture ?? null) : null;
 
   return (
-    <>
-      <section aria-labelledby="landing-snapshot-title" className="landing-section">
-        <div className="landing-section-header">
-          <h2 className="landing-section-title" id="landing-snapshot-title">
-            Ottawa Valley weather
-          </h2>
-          <p className="landing-section-note">
-            Live regional data from NASA POWER and Open-Meteo
-          </p>
-        </div>
+    <section aria-labelledby="landing-snapshot-title" className="landing-section">
+      <div className="landing-section-header">
+        <h2 className="landing-section-title" id="landing-snapshot-title">
+          Ottawa Valley today
+        </h2>
+        <p className="landing-section-note">
+          Live regional conditions near the demo fields — not parcel measurements
+        </p>
+      </div>
 
-        {history.status === "error" ? (
-          <SourceErrorRow message={history.error} onRetry={retryHistory} sourceLabel="NASA POWER history" />
-        ) : null}
-        {forecast.status === "error" ? (
-          <SourceErrorRow message={forecast.error} onRetry={retryForecast} sourceLabel="Open-Meteo forecast" />
-        ) : null}
+      {history.status === "error" ? (
+        <SourceErrorRow message={history.error} onRetry={retryHistory} sourceLabel="NASA POWER history" />
+      ) : null}
+      {forecast.status === "error" ? (
+        <SourceErrorRow message={forecast.error} onRetry={retryForecast} sourceLabel="Open-Meteo forecast" />
+      ) : null}
 
-        <div className="kpi-grid">
+      <div className="kpi-grid">
           <KpiTile
-            label="30-day rain"
+            label="30-day rainfall"
             loading={history.status === "loading"}
             note="NASA POWER"
             unit="mm"
             value={rain30 !== null ? formatNumber(rain30) : null}
           />
           <KpiTile
-            label="Avg temp (30d)"
+            label="Average temperature (30 days)"
             loading={history.status === "loading"}
             note="NASA POWER"
             unit="°C"
@@ -99,13 +98,13 @@ function FieldSnapshotInner({ latitude, longitude }: { latitude: number; longitu
             value={frostIn === undefined ? null : frostIn === null ? "7+" : `${frostIn}`}
           />
         </div>
-      </section>
-      <OttawaGcsRegionContext />
-    </>
+
+      <OttawaRegionalObservations />
+    </section>
   );
 }
 
-function OttawaGcsRegionContext() {
+function OttawaRegionalObservations() {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<SourceState<TerrainSample>>({ status: "loading" });
 
@@ -148,24 +147,41 @@ function OttawaGcsRegionContext() {
     .map((source) => source.label)
     .join(" · ");
 
-  return (
-    <section aria-labelledby="landing-gcs-title" className="landing-section">
-      <div className="landing-section-header">
-        <h2 className="landing-section-title" id="landing-gcs-title">
-          Ottawa Valley observations from GCS
-        </h2>
-        <p className="landing-section-note">
-          Real datasets sampled over the Landsat scene footprint; regional measurements, not parcel data
+  if (state.status === "error") {
+    return (
+      <div aria-labelledby="landing-regional-title" className="landing-subsection">
+        <div className="landing-section-header">
+          <h3 className="landing-subsection-title" id="landing-regional-title">
+            Regional observations
+          </h3>
+        </div>
+        <p className="source-muted" role="status">
+          <span>
+            Terrain, soil, and satellite observations are offline right now — they need the loam
+            data service.
+          </span>
+          <button
+            className="source-error-retry"
+            onClick={() => setAttempt((current) => current + 1)}
+            type="button"
+          >
+            Retry
+          </button>
         </p>
       </div>
+    );
+  }
 
-      {state.status === "error" ? (
-        <SourceErrorRow
-          message={state.error}
-          onRetry={() => setAttempt((current) => current + 1)}
-          sourceLabel="GCS regional data"
-        />
-      ) : null}
+  return (
+    <div aria-labelledby="landing-regional-title" className="landing-subsection">
+      <div className="landing-section-header">
+        <h3 className="landing-subsection-title" id="landing-regional-title">
+          Regional observations
+        </h3>
+        <p className="landing-section-note">
+          SRTM terrain · Landsat 8 vegetation · CanSIS soil mapping, sampled over the Landsat scene footprint
+        </p>
+      </div>
 
       <div className="kpi-grid">
         <KpiTile
@@ -261,14 +277,14 @@ function OttawaGcsRegionContext() {
             </p>
           ) : null}
           <p className="landing-section-note">
-            GCS sources: {extractedSources || "none extracted"}. CanSIS is 1:1,000,000 regional
+            Datasets sampled: {extractedSources || "none extracted"}. CanSIS is 1:1,000,000 regional
             screening, not a soil test. NDVI is one satellite observation, not a crop-health
             diagnosis.
           </p>
         </>
       ) : state.status === "loading" ? (
-        <p className="landing-section-note">Loading Ottawa-area GCS datasets…</p>
+        <p className="landing-section-note">Loading Ottawa-area observations…</p>
       ) : null}
-    </section>
+    </div>
   );
 }
