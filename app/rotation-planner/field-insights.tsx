@@ -3,6 +3,8 @@ import type { FieldSoilContext } from "@/lib/recommendations/field-fit";
 
 export function FieldInsights({ sample, fieldSoil }: { sample: TerrainSample; fieldSoil: FieldSoilContext }) {
   const cropClassPresent = sample.crop_sample_count > 0;
+  const cropClasses = [...sample.crop_class_counts].sort((first, second) => second.pixel_count - first.pixel_count);
+  const dominantClass = cropClasses[0];
 
   return (
     <div className="farmer-insights">
@@ -26,14 +28,24 @@ export function FieldInsights({ sample, fieldSoil }: { sample: TerrainSample; fi
             <dd>{fieldSoil.coveragePct.toFixed(0)}%</dd>
           </div>
           <div>
-            <dt>Crop type</dt>
-            <dd>{cropClassPresent ? "Needs confirmation" : "Not identified"}</dd>
+            <dt>2025 mapped land cover</dt>
+            <dd>{dominantClass?.label ?? (cropClassPresent ? "Classification unavailable" : "Not identified")}</dd>
           </div>
         </dl>
         {cropClassPresent && (
           <p className="rotation-provenance">
-            A crop-cover record is present, but the crop name has not been confirmed for this field.
+            2025 Annual Crop Inventory satellite classification, not a confirmed current crop. Sampled pixels may include non-crop land cover.
           </p>
+        )}
+        {cropClasses.length > 0 && (
+          <dl className="farmer-condition-grid farmer-condition-grid--compact" aria-label="2025 mapped land cover by sampled pixel share">
+            {cropClasses.map((cropClass) => (
+              <div key={cropClass.class_code}>
+                <dt>{cropClass.label ?? `Unknown class ${cropClass.class_code}`}</dt>
+                <dd>{cropClass.field_share_pct.toFixed(1)}% of sampled pixels</dd>
+              </div>
+            ))}
+          </dl>
         )}
       </section>
 

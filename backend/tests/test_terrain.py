@@ -16,6 +16,7 @@ from backend.services.terrain import (
     build_srtm_object_name,
     get_terrain_sample,
     _nullable_int,
+    load_crop_legend,
     sample_crop_inventory_dataset,
     sample_srtm_geotiff,
 )
@@ -111,6 +112,24 @@ class FakeBucket:
 
 
 class TerrainTests(unittest.TestCase):
+    @patch("backend.services.terrain.get_bucket")
+    def test_loads_bilingual_crop_legend(self, get_bucket_mock) -> None:
+        contents = "Code,Label,Étiquette\n122,Pasture/forages,Pâturage\n158,Soybeans,Soya\n".encode("cp1252")
+        get_bucket_mock.return_value = FakeBucket(FakeBlob(contents))
+        self.assertEqual(load_crop_legend(), {122: "Pasture/forages", 158: "Soybeans"})
+
+    @patch("backend.services.terrain.get_bucket")
+    def test_rejects_invalid_crop_legend(self, get_bucket_mock) -> None:
+        get_bucket_mock.return_value = FakeBucket(FakeBlob(b"Code,Name\n158,Soybeans\n"))
+        with self.assertRaises(ValueError):
+            load_crop_legend()
+
+    @patch("backend.services.terrain.get_bucket")
+    def test_rejects_duplicate_crop_codes(self, get_bucket_mock) -> None:
+        get_bucket_mock.return_value = FakeBucket(FakeBlob(b"Code,Label\n158,Soybeans\n158,Corn\n"))
+        with self.assertRaises(ValueError):
+            load_crop_legend()
+
     def test_builds_correct_srtm_geotiff_tile_name_for_field(self) -> None:
         object_name = build_srtm_object_name({
             "type": "Polygon",

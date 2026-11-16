@@ -2487,16 +2487,49 @@ h1 {
   background: #bb7558;
 }
 
+.rotation-scenario-picker {
+  display: grid;
+  margin-top: 20px;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.rotation-scenario-option {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--loam-border);
+  border-radius: var(--loam-radius-control);
+  background: var(--loam-panel);
+  color: var(--loam-muted);
+  cursor: pointer;
+  font-family: var(--loam-font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rotation-scenario-option[aria-pressed="true"] {
+  border-color: var(--loam-accent);
+  color: var(--loam-ink);
+  box-shadow: inset 0 -2px 0 var(--loam-accent);
+}
+
+.rotation-scenario-option:focus-visible,
+.rotation-scenario-details summary:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
 .rotation-scenario-list {
   display: grid;
-  margin: 16px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .rotation-scenario-list > li {
-  padding: 16px 0;
-  border-top: 1px solid var(--loam-border);
+  padding: 12px 0 4px;
 }
 
 .rotation-scenario-heading {
@@ -2516,6 +2549,20 @@ h1 {
   font-family: var(--loam-font-sans);
   font-size: 12px;
   text-align: right;
+}
+
+.rotation-scenario-details {
+  margin-top: 16px;
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 12px;
+}
+
+.rotation-scenario-details summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--loam-ink);
+  font-weight: 600;
 }
 
 .rotation-scenario-note {
@@ -2545,14 +2592,15 @@ h1 {
 
 .rotation-score-grid > div {
   min-width: 0;
-  padding-top: 9px;
+  padding-top: 12px;
   border-top: 1px solid var(--loam-border);
 }
 
 .rotation-score-grid dt {
   color: var(--loam-muted);
   font-family: var(--loam-font-sans);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .rotation-score-grid dd {
@@ -2560,7 +2608,13 @@ h1 {
   font-family: var(--loam-font-sans);
   font-size: 13px;
   font-weight: 650;
+  line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.rotation-score-grid dd.rotation-metric-pending {
+  color: var(--loam-muted);
+  font-weight: 500;
 }
 
 .rotation-score-grid small {
@@ -2568,7 +2622,7 @@ h1 {
   margin-top: 4px;
   color: var(--loam-muted);
   font-family: var(--loam-font-sans);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -2582,9 +2636,17 @@ h1 {
 
 .rotation-scenario-list dl {
   display: grid;
-  margin: 12px 0 0;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 20px 0 0;
+  gap: 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.rotation-scenario-list dl > div {
+  grid-column: span 2;
+}
+
+.rotation-scenario-list dl > div:nth-child(n + 4) {
+  grid-column: span 3;
 }
 
 .soil-landscape-block + .soil-landscape-block {
@@ -2680,6 +2742,25 @@ h1 {
   font-weight: 650;
 }
 
+.crop-budget-source {
+  margin: 12px 0 0;
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 12px;
+}
+
+.crop-budget-source summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--loam-ink);
+  font-weight: 600;
+}
+
+.crop-budget-source summary:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
 .desired-crop-list {
   display: grid;
   gap: 20px;
@@ -2711,10 +2792,6 @@ h1 {
 
 .desired-crop-row .crop-family-inferred small {
   margin-top: -4px;
-}
-
-.desired-crop-row .crop-budget-input {
-  grid-column: 1 / -1;
 }
 
 .desired-crop-row .crop-fit-inline {
@@ -2793,7 +2870,7 @@ h1 {
   display: grid;
   margin: 14px 0 0;
   padding: 0;
-  gap: 12px;
+  gap: 8px;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   list-style: none;
 }
@@ -2801,8 +2878,9 @@ h1 {
 .crop-plan-timeline li {
   display: grid;
   min-width: 0;
-  padding: 12px 0;
-  border-top: 1px solid var(--loam-border);
+  padding: 10px 12px;
+  border-left: 2px solid var(--loam-border);
+  background: var(--loam-panel);
   gap: 5px;
 }
 
@@ -2815,8 +2893,11 @@ h1 {
 
 .crop-plan-timeline strong {
   overflow-wrap: anywhere;
-  font-size: 16px;
-  font-weight: 500;
+  color: var(--loam-ink);
+  font-family: var(--loam-font-sans);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .season-editor {
@@ -2955,6 +3036,11 @@ h1 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .rotation-scenario-list dl > div,
+  .rotation-scenario-list dl > div:nth-child(n + 4) {
+    grid-column: auto;
+  }
+
   .rotation-score-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2969,6 +3055,10 @@ h1 {
   }
 
   .desired-crop-row .crop-water-demand {
+    grid-column: 1 / -1;
+  }
+
+  .desired-crop-row .crop-budget-input {
     grid-column: 1 / -1;
   }
 

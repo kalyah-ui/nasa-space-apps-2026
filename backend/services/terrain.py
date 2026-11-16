@@ -1,3 +1,5 @@
+import csv
+import io
 import math
 import os
 import tempfile
@@ -27,6 +29,7 @@ from backend.services.gcs import get_bucket
 
 SRTM_TIFF_PREFIX = "raw/srtm-global-1-arc-second:v003:ontario/"
 ACI_RASTER_OBJECT = "raw/annual-crop-inventory_2025_on_v1/aci_2025_on_v1.tif"
+ACI_LEGEND_OBJECT = "processed/aci_crop_classifications_iac_classifications_des_cultures.csv"
 SOIL_PREFIX = "raw/cansis-soil-landscapes-canada-v3-2/"
 SOIL_SHAPE_OBJECT = f"{SOIL_PREFIX}ca_all_slc_v3r2.shp"
 SOIL_ANALYTIC_OBJECTS = [
@@ -182,6 +185,29 @@ def sample_crop_inventory_dataset(
         ],
         total,
     )
+
+
+def load_crop_legend() -> dict[int, str]:
+    blob = get_bucket().blob(ACI_LEGEND_OBJECT)
+    blob.reload()
+    if blob.size is not None and blob.size > 1024 * 1024:
+        raise ValueError("Crop classification legend exceeds the allowed size.")
+    contents = blob.download_as_bytes()
+    if len(contents) > 1024 * 1024:
+        raise ValueError("Crop classification legend exceeds the allowed size.")
+    reader = csv.DictReader(io.StringIO(contents.decode("cp1252")))
+    if not reader.fieldnames or not {"Code", "Label"}.issubset(reader.fieldnames):
+        raise ValueError("Crop classification legend is missing Code or Label columns.")
+    labels: dict[int, str] = {}
+    for row in reader:
+        code = int(row["Code"].strip())
+        label = row["Label"].strip()
+        if not label or code in labels:
+            raise ValueError("Crop classification legend contains an empty or duplicate entry.")
+        labels[code] = label
+    if not labels:
+        raise ValueError("Crop classification legend is empty.")
+    return labels
 
 
 def _nullable_float(value: Any) -> float | None:
@@ -416,6 +442,15 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
                 crop_dataset,
                 request.geometry,
             )
+        try:
+            labels = load_crop_legend()
+            for crop_class in crop_class_counts:
+                crop_class.label = labels.get(crop_class.class_code)
+            legend_detail = "Classes are labelled using the AAFC classification legend."
+            source_objects = [ACI_RASTER_OBJECT, ACI_LEGEND_OBJECT]
+        except Exception:
+            legend_detail = "The classification legend is unavailable; class codes remain unlabelled."
+            source_objects = [ACI_RASTER_OBJECT]
         sources.append(
             SourceExtraction(
                 source_id="crop_inventory",
@@ -423,9 +458,9 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
                 status="extracted",
                 detail=(
                     f"Extracted {len(crop_class_counts)} raw class codes from {crop_sample_count} pixels. "
-                    "The GCS objects do not include a verified class legend, so codes remain unlabelled."
+                    f"{legend_detail}"
                 ),
-                source_objects=[ACI_RASTER_OBJECT],
+                source_objects=source_objects,
             )
         )
     except Exception as error:
