@@ -297,6 +297,14 @@ export class MockProvider implements DataProvider {
     throw new Error("Regional CanSIS soil data is unavailable from the mock provider.");
   }
 
+  async getSoilTests(): Promise<never> {
+    throw new Error("Private soil-test storage is unavailable from the mock provider.");
+  }
+
+  async uploadSoilTest(): Promise<never> {
+    throw new Error("Private soil-test storage is unavailable from the mock provider.");
+  }
+
   async listLayerDates(fieldId: string, layerId: LayerId): Promise<string[]> {
     assertKnownField(fieldId);
     getLayerSpec(layerId);

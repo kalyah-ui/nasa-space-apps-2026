@@ -4,6 +4,7 @@ node_modules/
 .next-stale-*/
 .next-build-*/
 .next-public-test/
+.next-local-*/
 out/
 dist/
 build/

@@ -114,6 +114,9 @@ export type SoilCropId =
   | "forage";
 
 export type SoilRegionCollection = import("@/lib/soil/types").SoilRegionCollection;
+export type SoilTestCollection = import("@/lib/soil/upload-types").SoilTestCollection;
+export type SoilCsvMapping = import("@/lib/soil/upload-types").SoilCsvMapping;
+export type SoilSamplingScope = import("@/lib/soil/upload-types").SoilSamplingScope;
 
 export interface DataProvider {
   listFields(signal?: AbortSignal): Promise<FieldCollection>;
@@ -130,6 +133,8 @@ export interface DataProvider {
     field?: FieldCollectionFeature | null,
     signal?: AbortSignal,
   ): Promise<SoilRegionCollection>;
+  getSoilTests(fieldId: string, crop: SoilCropId, signal?: AbortSignal): Promise<SoilTestCollection>;
+  uploadSoilTest(fieldId: string, form: FormData, signal?: AbortSignal): Promise<SoilTestCollection["uploads"][number]>;
   listLayerDates(fieldId: string, layerId: LayerId): Promise<string[]>;
   getLayerData(fieldId: string, layerId: LayerId, date?: string): Promise<LayerData>;
   inspectPoint(

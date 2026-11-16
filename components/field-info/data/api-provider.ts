@@ -10,6 +10,7 @@ import type {
   PointInspection,
   SoilCropId,
   SoilRegionCollection,
+  SoilTestCollection,
 } from "./types";
 
 const liveProvenance = {
@@ -71,7 +72,14 @@ export class ApiProvider implements DataProvider {
   constructor(
     private readonly config: {
       soilRegions: { endpoint: string };
-    } = { soilRegions: { endpoint: "/api/soil-regions" } },
+      soilTests: { fieldEndpoint: (fieldId: string) => string };
+    } = {
+      soilRegions: { endpoint: "/api/soil-regions" },
+      soilTests: {
+        fieldEndpoint: (fieldId) =>
+          `/api/fields/${encodeURIComponent(fieldId)}/soil-tests`,
+      },
+    },
   ) {}
 
   async listFields(signal?: AbortSignal): Promise<FieldCollection> {
@@ -156,6 +164,35 @@ export class ApiProvider implements DataProvider {
         signal,
       }),
       "Regional soil suitability could not be loaded.",
+    );
+  }
+
+  async getSoilTests(
+    fieldId: string,
+    crop: SoilCropId,
+    signal?: AbortSignal,
+  ): Promise<SoilTestCollection> {
+    const endpoint = new URL(this.config.soilTests.fieldEndpoint(fieldId), window.location.origin);
+    endpoint.searchParams.set("crop", crop);
+    return readJson<SoilTestCollection>(
+      await fetch(endpoint, { cache: "no-store", credentials: "same-origin", signal }),
+      "Saved soil tests could not be loaded.",
+    );
+  }
+
+  async uploadSoilTest(
+    fieldId: string,
+    form: FormData,
+    signal?: AbortSignal,
+  ): Promise<SoilTestCollection["uploads"][number]> {
+    return readJson<SoilTestCollection["uploads"][number]>(
+      await fetch(this.config.soilTests.fieldEndpoint(fieldId), {
+        method: "POST",
+        body: form,
+        credentials: "same-origin",
+        signal,
+      }),
+      "The soil test could not be stored.",
     );
   }
 

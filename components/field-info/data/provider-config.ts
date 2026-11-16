@@ -9,6 +9,11 @@ export const regionalSoilProviderConfig = {
   title: "Regional soil suitability — not measured productivity",
 } as const;
 
+export const soilTestProviderConfig = {
+  fieldEndpoint: (fieldId: string) => `/api/fields/${encodeURIComponent(fieldId)}/soil-tests`,
+  ownership: "signed-anonymous-cookie",
+} as const;
+
 function createDataProvider(): DataProvider {
   const providerName = process.env.NEXT_PUBLIC_DATA_PROVIDER ?? "api";
 
@@ -17,7 +22,7 @@ function createDataProvider(): DataProvider {
   }
 
   if (providerName === "api") {
-    return new ApiProvider({ soilRegions: regionalSoilProviderConfig });
+    return new ApiProvider({ soilRegions: regionalSoilProviderConfig, soilTests: soilTestProviderConfig });
   }
 
   throw new Error(

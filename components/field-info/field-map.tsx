@@ -21,7 +21,11 @@ import type {
   StoredFieldCollection,
   StoredFieldFeature,
 } from "@/lib/fields/types";
-import { SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
+import {
+  loadSavedFields,
+  saveFieldForRotation,
+  SELECTED_FIELD_STORAGE_KEY,
+} from "@/lib/fields/field-catalog";
 import { fieldDataProvider } from "./data/provider-config";
 import type { FieldSpec, LayerId, MapOverlayData } from "./data/types";
 import type { SoilCropId, SoilRegionCollection } from "./data/types";
@@ -274,6 +278,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     features: [],
   });
   const [selectedField, setSelectedField] = useState<StoredFieldFeature | null>(null);
+  const [fieldToSave, setFieldToSave] = useState<StoredFieldFeature | null>(null);
+  const [fieldSaveName, setFieldSaveName] = useState("");
   const [draftField, setDraftField] = useState<DraftField | null>(null);
   const [draftName, setDraftName] = useState("");
   const [isEditingBoundary, setIsEditingBoundary] = useState(false);
@@ -327,7 +333,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     selectedFeatureIdRef.current = field.id;
     selectedFieldRef.current = field;
     setSelectedField(field);
-    window.localStorage.setItem(SELECTED_FIELD_STORAGE_KEY, field.id);
+    setSoilUploadStatus({ kind: "idle" });
+    window.sessionStorage.setItem(SELECTED_FIELD_STORAGE_KEY, field.id);
     onSelectField(toFieldSpec(field));
     map.setFeatureState(
       { source: fieldSourceId, id: field.id },
@@ -459,7 +466,12 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               (id !== undefined && String(candidate.id) === String(id)) ||
               (typeof name === "string" && candidate.properties.name === name),
           );
-          if (field) selectField(field);
+          if (field) {
+            selectField(field);
+            const existing = loadSavedFields().find((saved) => saved.id === field.id);
+            setFieldToSave(field);
+            setFieldSaveName(existing?.name ?? field.properties.name);
+          }
         });
 
         map.on("style.load", () => {
@@ -570,6 +582,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
       if (mapRef.current === map) mapRef.current = null;
       map?.remove();
     };
+  // Mapbox listeners are intentionally registered once; current field data is read from refs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -1007,10 +1021,29 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
 
   async function renameSelectedField() {
     if (!selectedField) return;
-    const name = window.prompt("Field name", selectedField.properties.name)?.trim();
-    if (name && name !== selectedField.properties.name) {
-      await updateStoredField(selectedField.id, { name }, "Field renamed.");
-    }
+    const existing = loadSavedFields().find((saved) => saved.id === selectedField.id);
+    setFieldToSave(selectedField);
+    setFieldSaveName(existing?.name ?? selectedField.properties.name);
+  }
+
+  function saveSelectedFieldForRotation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = fieldSaveName.trim();
+    if (!fieldToSave || !name) return;
+    saveFieldForRotation({
+      id: fieldToSave.id,
+      name,
+      geometry: fieldToSave.geometry,
+    });
+    setFieldToSave(null);
+    setFieldSaveName("");
+    setFieldToolError(null);
+    setFieldToolMessage(`${name} was saved for Crop Rotation.`);
+  }
+
+  function cancelFieldSave() {
+    setFieldToSave(null);
+    setFieldSaveName("");
   }
 
   async function deleteSelectedField() {
@@ -1454,7 +1487,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
                 onClick={renameSelectedField}
                 type="button"
               >
-                Rename
+                Save as
               </button>
               {!isEditingBoundary ? (
                 <button
@@ -1495,6 +1528,37 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
         </div>
       ) : null}
 
+      {fieldToSave ? (
+        <div className="field-map-save-dialog-backdrop">
+          <form
+            aria-labelledby="field-save-dialog-title"
+            aria-modal="true"
+            className="field-map-save-dialog"
+            onSubmit={saveSelectedFieldForRotation}
+            role="dialog"
+          >
+            <strong id="field-save-dialog-title">Save field as</strong>
+            <label htmlFor="field-save-name">Enter the name of the field</label>
+            <input
+              autoFocus
+              id="field-save-name"
+              maxLength={100}
+              onChange={(event) => setFieldSaveName(event.target.value)}
+              placeholder="Field name"
+              required
+              value={fieldSaveName}
+            />
+            <small>
+              This field will be available in Crop Rotation for this browser session.
+            </small>
+            <div>
+              <button type="submit">Save field</button>
+              <button onClick={cancelFieldSave} type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
       {draftField ? (
         <form className="field-map-draft-panel" onSubmit={saveDraftField}>
           <strong>Name this field</strong>
@@ -1517,25 +1581,31 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
         </form>
       ) : null}
 
-      {fieldToolError || fieldToolMessage ? (
-        <div
-          aria-live="polite"
-          className={`field-map-tool-feedback${fieldToolError ? " is-error" : ""}`}
-          role={fieldToolError ? "alert" : "status"}
-        >
-          {fieldToolError ?? fieldToolMessage}
-        </div>
-      ) : null}
-
-      {soilUploadStatus.kind === "success" || soilUploadStatus.kind === "error" ? (
-        <div
-          aria-live="polite"
-          className={`field-map-soil-upload-feedback${
-            soilUploadStatus.kind === "error" ? " is-error" : ""
-          }`}
-          role={soilUploadStatus.kind === "error" ? "alert" : "status"}
-        >
-          {soilUploadStatus.message}
+      {fieldToolError ||
+      fieldToolMessage ||
+      soilUploadStatus.kind === "success" ||
+      soilUploadStatus.kind === "error" ? (
+        <div className="field-map-feedback-stack">
+          {fieldToolError || fieldToolMessage ? (
+            <div
+              aria-live="polite"
+              className={`field-map-tool-feedback${fieldToolError ? " is-error" : ""}`}
+              role={fieldToolError ? "alert" : "status"}
+            >
+              {fieldToolError ?? fieldToolMessage}
+            </div>
+          ) : null}
+          {soilUploadStatus.kind === "success" || soilUploadStatus.kind === "error" ? (
+            <div
+              aria-live="polite"
+              className={`field-map-soil-upload-feedback${
+                soilUploadStatus.kind === "error" ? " is-error" : ""
+              }`}
+              role={soilUploadStatus.kind === "error" ? "alert" : "status"}
+            >
+              {soilUploadStatus.message}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

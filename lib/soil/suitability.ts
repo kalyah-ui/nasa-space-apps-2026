@@ -3,6 +3,7 @@ import type {
   SoilCropId,
   SoilSuitabilityRating,
 } from "./types";
+import type { SoilSampleRecord, SoilUploadAssessment } from "./upload-types";
 
 export const soilSuitabilitySources = {
   slc: "https://sis.agr.gc.ca/cansis/nsdb/slc/v3.2/index.html",
@@ -50,6 +51,35 @@ function phThreshold(crop: SoilCropId, texture: "fine" | "coarse-medium") {
   }
   if (crop === "corn" || crop === "soybean" || crop === "forage") return 5.6;
   return 6.1;
+}
+
+export function rateUploadedComposite(sample: SoilSampleRecord, crop: SoilCropId): SoilUploadAssessment {
+  const ph = sample.ph?.value ?? null;
+  const sand = sample.sand?.value ?? null;
+  const clay = sample.clay?.value ?? null;
+  const texture = sand !== null && clay !== null ? (clay >= 35 ? "fine" : "coarse-medium") : null;
+  const limitations: Limitation[] = [];
+  const dataGaps: string[] = [];
+  const informedBy: string[] = [];
+  if (ph !== null && texture) {
+    const threshold = phThreshold(crop, texture);
+    informedBy.push("whole-field composite pH (" + ph.toFixed(1) + ")", "measured sand/clay texture group");
+    if (ph < threshold - 0.6) limitations.push({ severity: 2, message: "Measured composite pH " + ph.toFixed(1) + " is well below the documented liming threshold (" + threshold.toFixed(1) + ")." });
+    else if (ph < threshold) limitations.push({ severity: 1, message: "Measured composite pH " + ph.toFixed(1) + " is below the documented liming threshold (" + threshold.toFixed(1) + ")." });
+  } else {
+    if (ph === null) dataGaps.push("No compatible pH measurement was supplied.");
+    if (!texture) dataGaps.push("Sand and clay are both needed to apply the texture-specific pH rule.");
+  }
+  dataGaps.push("Drainage and rooting depth remain regional CanSIS background unless measured separately.");
+  const maximumSeverity = limitations.reduce<Severity>((maximum, limitation) => Math.max(maximum, limitation.severity) as Severity, 0);
+  return {
+    crop,
+    rating: informedBy.length === 0 ? "Insufficient data" : maximumSeverity === 2 ? "Limited" : maximumSeverity === 1 ? "Moderate" : "Good",
+    limitingFactors: limitations.map((limitation) => limitation.message),
+    dataGaps,
+    informedBy,
+    uncertainty: "This assessment uses only a confirmed whole-field composite and documented pH/texture rules. It is not a yield prediction.",
+  };
 }
 
 function drainageLimitation(crop: SoilCropId, code: string): Limitation | null {

@@ -3,7 +3,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { getTerrainSample, type TerrainSample } from "@/lib/datasets/terrain-client";
 import {
-  loadFieldCatalog,
+  loadSavedFields,
   SELECTED_FIELD_STORAGE_KEY,
   type FieldOption,
 } from "@/lib/fields/field-catalog";
@@ -33,19 +33,18 @@ export function RotationPlanner() {
   const sampleFieldRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
     let active = true;
 
-    async function loadFields() {
+    function loadFields() {
       try {
-        const loadedFields = await loadFieldCatalog(controller.signal);
+        const loadedFields = loadSavedFields();
         if (!active) return;
         setFields(loadedFields);
-        const savedFieldId = window.localStorage.getItem(SELECTED_FIELD_STORAGE_KEY);
+        const savedFieldId = window.sessionStorage.getItem(SELECTED_FIELD_STORAGE_KEY);
         const initialField = loadedFields.find((field) => field.id === savedFieldId) ?? loadedFields[0];
-        setSelectedFieldId(initialField.id);
+        setSelectedFieldId(initialField?.id ?? "");
       } catch (loadError) {
-        if (active && !(loadError instanceof DOMException && loadError.name === "AbortError")) {
+        if (active) {
           setFieldsError(loadError instanceof Error ? loadError.message : "Unable to load fields.");
         }
       } finally {
@@ -53,10 +52,9 @@ export function RotationPlanner() {
       }
     }
 
-    void loadFields();
+    loadFields();
     return () => {
       active = false;
-      controller.abort();
     };
   }, []);
 
@@ -70,7 +68,7 @@ export function RotationPlanner() {
     setSampleError(null);
     setResultsReady(false);
     sampleFieldRef.current = null;
-    window.localStorage.setItem(SELECTED_FIELD_STORAGE_KEY, fieldId);
+    window.sessionStorage.setItem(SELECTED_FIELD_STORAGE_KEY, fieldId);
   }
 
   function loadSample(field: FieldOption) {
@@ -144,11 +142,16 @@ export function RotationPlanner() {
                 {fields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
               </select>
             </label>
-            <button disabled={fieldsLoading} type="submit">
+            <button disabled={fieldsLoading || !selectedField} type="submit">
               Next: Choose crops →
             </button>
           </form>
 
+          {!fieldsLoading && fields.length === 0 && !fieldsError ? (
+            <p className="rotation-provenance" role="status">
+              No fields have been saved yet. Open Fields, click the correct plot, and enter a field name.
+            </p>
+          ) : null}
           {fieldsError && <p className="rotation-error" role="alert">{fieldsError}</p>}
         </section>
       )}
