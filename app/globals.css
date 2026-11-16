@@ -1760,6 +1760,45 @@ h1 {
   backdrop-filter: blur(8px);
 }
 
+.field-map-field-tools {
+  position: absolute;
+  z-index: 3;
+  top: 76px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.field-map-field-tools button,
+.field-map-selection-actions button,
+.field-map-draft-panel button {
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: rgb(25 34 28 / 94%);
+  color: var(--farmish-map-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  backdrop-filter: blur(8px);
+}
+
+.field-map-field-tools button:hover:not(:disabled),
+.field-map-selection-actions button:hover:not(:disabled),
+.field-map-draft-panel button:hover:not(:disabled) {
+  border-color: var(--farmish-map-accent);
+  color: var(--farmish-map-accent);
+}
+
+.field-map-field-tools button:disabled,
+.field-map-selection-actions button:disabled,
+.field-map-draft-panel button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .field-map-address-search:focus-within {
   border-color: var(--loam-map-accent);
   outline: 2px solid rgb(182 214 129 / 22%);
@@ -1811,7 +1850,8 @@ h1 {
 }
 
 .field-map-message,
-.field-map-selection {
+.field-map-selection,
+.field-map-elevation-panel {
   position: absolute;
   z-index: 2;
   border: 1px solid var(--loam-map-border);
@@ -1866,6 +1906,269 @@ h1 {
 .field-map-selection small {
   color: var(--loam-map-muted);
   font-size: 11px;
+}
+
+.field-map-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.field-map-selection-actions button {
+  padding: 5px 8px;
+  background: transparent;
+}
+
+.field-map-selection-actions button.is-danger {
+  border-color: var(--farmish-danger-border);
+  color: var(--farmish-danger-ink);
+}
+
+.field-map-draft-panel,
+.field-map-tool-feedback {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 8px;
+  background: rgb(25 34 28 / 96%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(8px);
+}
+
+.field-map-draft-panel {
+  top: 122px;
+  left: 16px;
+  display: grid;
+  width: min(300px, calc(100% - 32px));
+  gap: 9px;
+  padding: 14px;
+}
+
+.field-map-draft-panel input {
+  min-width: 0;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 6px;
+  outline: 0;
+  padding: 9px 10px;
+  background: var(--farmish-map-background);
+  color: var(--farmish-map-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.field-map-draft-panel input:focus {
+  border-color: var(--farmish-map-accent);
+}
+
+.field-map-draft-panel > div {
+  display: flex;
+  gap: 6px;
+}
+
+.field-map-draft-panel button:first-child {
+  border-color: var(--farmish-map-accent);
+  background: var(--farmish-map-accent);
+  color: var(--farmish-accent-ink);
+}
+
+.field-map-tool-feedback {
+  top: 118px;
+  left: 16px;
+  max-width: min(440px, calc(100% - 96px));
+  padding: 10px 12px;
+  color: var(--farmish-map-text);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.field-map-tool-feedback.is-error {
+  border-color: var(--farmish-danger-border);
+  background: rgb(59 31 29 / 96%);
+  color: var(--farmish-danger-ink);
+}
+
+.field-map-soil-upload-feedback {
+  position: absolute;
+  z-index: 4;
+  top: 118px;
+  left: 16px;
+  max-width: min(440px, calc(100% - 96px));
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgb(25 34 28 / 96%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  color: var(--farmish-map-text);
+  font-size: 11px;
+}
+
+.field-map-soil-upload-feedback.is-error {
+  border-color: var(--farmish-danger-border);
+  background: rgb(59 31 29 / 96%);
+  color: var(--farmish-danger-ink);
+}
+
+.field-workspace-map .mapboxgl-ctrl-group:empty {
+  display: none;
+}
+
+.field-map-elevation-panel {
+  right: 24px;
+  bottom: 24px;
+  min-width: 220px;
+  padding: 12px 14px;
+  color: var(--farmish-map-text);
+  font-size: 12px;
+}
+
+.field-map-elevation-panel.is-error {
+  max-width: min(360px, calc(100% - 48px));
+  border-color: var(--farmish-danger-border);
+  background: rgb(59 31 29 / 94%);
+  color: #f5c5be;
+  line-height: 1.45;
+}
+
+.field-map-elevation-legend {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+}
+
+.field-map-elevation-legend strong {
+  font-size: 13px;
+}
+
+.field-map-elevation-units {
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.field-map-elevation-gradient {
+  height: 9px;
+  grid-column: 1 / -1;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 999px;
+}
+
+.field-map-elevation-range {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+}
+
+.field-map-landsat-panel {
+  min-width: 280px;
+  max-width: min(390px, calc(100% - 48px));
+}
+
+.field-map-landsat-legend {
+  grid-template-columns: 1fr auto;
+}
+
+.field-map-landsat-stat,
+.field-map-landsat-source {
+  grid-column: 1 / -1;
+}
+
+.field-map-soil-panel {
+  display: grid;
+  width: min(420px, calc(100% - 48px));
+  max-height: min(650px, calc(100% - 48px));
+  gap: 9px;
+  overflow: auto;
+}
+
+.field-map-soil-panel > strong {
+  font-size: 13px;
+}
+
+.field-map-soil-panel small {
+  color: var(--farmish-map-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.field-map-soil-crop {
+  display: grid;
+  grid-template-columns: auto minmax(130px, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.field-map-soil-crop select {
+  min-width: 0;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: var(--farmish-map-background);
+  color: var(--farmish-map-text);
+  font: inherit;
+  text-transform: none;
+}
+
+.field-map-soil-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+  font-size: 10px;
+}
+
+.field-map-soil-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-map-soil-legend i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 2px;
+}
+
+.field-map-soil-overlaps,
+.field-map-soil-details {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid var(--farmish-map-border);
+  padding-top: 8px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.field-map-soil-overlaps button {
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: transparent;
+  color: var(--farmish-map-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.field-map-soil-overlaps button:hover {
+  border-color: var(--farmish-map-accent);
+}
+
+.field-map-landsat-stat {
+  color: var(--farmish-map-text);
+  font-size: 11px;
+}
+
+.field-map-landsat-source {
+  color: var(--farmish-map-muted);
+  font-size: 9px;
+  line-height: 1.35;
 }
 
 .field-workspace-map .mapboxgl-ctrl-group {
@@ -1961,9 +2264,30 @@ h1 {
     width: calc(100% - 76px);
   }
 
+  .field-map-field-tools {
+    top: 74px;
+    left: 12px;
+  }
+
+  .field-map-draft-panel,
+  .field-map-tool-feedback {
+    top: 120px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+
   .field-map-selection {
     right: 16px;
     bottom: 30px;
+    left: 16px;
+    min-width: 0;
+  }
+
+  .field-map-elevation-panel {
+    right: 16px;
+    bottom: 126px;
     left: 16px;
     min-width: 0;
   }
@@ -2269,16 +2593,49 @@ h1 {
   background: #bb7558;
 }
 
+.rotation-scenario-picker {
+  display: grid;
+  margin-top: 20px;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.rotation-scenario-option {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--loam-border);
+  border-radius: var(--loam-radius-control);
+  background: var(--loam-panel);
+  color: var(--loam-muted);
+  cursor: pointer;
+  font-family: var(--loam-font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rotation-scenario-option[aria-pressed="true"] {
+  border-color: var(--loam-accent);
+  color: var(--loam-ink);
+  box-shadow: inset 0 -2px 0 var(--loam-accent);
+}
+
+.rotation-scenario-option:focus-visible,
+.rotation-scenario-details summary:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
 .rotation-scenario-list {
   display: grid;
-  margin: 16px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .rotation-scenario-list > li {
-  padding: 16px 0;
-  border-top: 1px solid var(--loam-border);
+  padding: 12px 0 4px;
 }
 
 .rotation-scenario-heading {
@@ -2298,6 +2655,20 @@ h1 {
   font-family: var(--loam-font-sans);
   font-size: 12px;
   text-align: right;
+}
+
+.rotation-scenario-details {
+  margin-top: 16px;
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 12px;
+}
+
+.rotation-scenario-details summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--loam-ink);
+  font-weight: 600;
 }
 
 .rotation-scenario-note {
@@ -2327,14 +2698,15 @@ h1 {
 
 .rotation-score-grid > div {
   min-width: 0;
-  padding-top: 9px;
+  padding-top: 12px;
   border-top: 1px solid var(--loam-border);
 }
 
 .rotation-score-grid dt {
   color: var(--loam-muted);
   font-family: var(--loam-font-sans);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .rotation-score-grid dd {
@@ -2342,7 +2714,13 @@ h1 {
   font-family: var(--loam-font-sans);
   font-size: 13px;
   font-weight: 650;
+  line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.rotation-score-grid dd.rotation-metric-pending {
+  color: var(--loam-muted);
+  font-weight: 500;
 }
 
 .rotation-score-grid small {
@@ -2350,7 +2728,7 @@ h1 {
   margin-top: 4px;
   color: var(--loam-muted);
   font-family: var(--loam-font-sans);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -2364,9 +2742,17 @@ h1 {
 
 .rotation-scenario-list dl {
   display: grid;
-  margin: 12px 0 0;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 20px 0 0;
+  gap: 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.rotation-scenario-list dl > div {
+  grid-column: span 2;
+}
+
+.rotation-scenario-list dl > div:nth-child(n + 4) {
+  grid-column: span 3;
 }
 
 .soil-landscape-block + .soil-landscape-block {
@@ -2462,6 +2848,25 @@ h1 {
   font-weight: 650;
 }
 
+.crop-budget-source {
+  margin: 12px 0 0;
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 12px;
+}
+
+.crop-budget-source summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--loam-ink);
+  font-weight: 600;
+}
+
+.crop-budget-source summary:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
 .desired-crop-list {
   display: grid;
   gap: 20px;
@@ -2493,10 +2898,6 @@ h1 {
 
 .desired-crop-row .crop-family-inferred small {
   margin-top: -4px;
-}
-
-.desired-crop-row .crop-budget-input {
-  grid-column: 1 / -1;
 }
 
 .desired-crop-row .crop-fit-inline {
@@ -2575,7 +2976,7 @@ h1 {
   display: grid;
   margin: 14px 0 0;
   padding: 0;
-  gap: 12px;
+  gap: 8px;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   list-style: none;
 }
@@ -2583,8 +2984,9 @@ h1 {
 .crop-plan-timeline li {
   display: grid;
   min-width: 0;
-  padding: 12px 0;
-  border-top: 1px solid var(--loam-border);
+  padding: 10px 12px;
+  border-left: 2px solid var(--loam-border);
+  background: var(--loam-panel);
   gap: 5px;
 }
 
@@ -2597,8 +2999,11 @@ h1 {
 
 .crop-plan-timeline strong {
   overflow-wrap: anywhere;
-  font-size: 16px;
-  font-weight: 500;
+  color: var(--loam-ink);
+  font-family: var(--loam-font-sans);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .season-editor {
@@ -2737,6 +3142,11 @@ h1 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .rotation-scenario-list dl > div,
+  .rotation-scenario-list dl > div:nth-child(n + 4) {
+    grid-column: auto;
+  }
+
   .rotation-score-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2751,6 +3161,10 @@ h1 {
   }
 
   .desired-crop-row .crop-water-demand {
+    grid-column: 1 / -1;
+  }
+
+  .desired-crop-row .crop-budget-input {
     grid-column: 1 / -1;
   }
 

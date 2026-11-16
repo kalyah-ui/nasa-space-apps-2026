@@ -22,6 +22,7 @@ interface DesiredCrop extends RotationCropInput {
   expectedYield: string;
   expectedPrice: string;
   budgetIndex: string;
+  customCost: string;
 }
 
 interface CropBudget {
@@ -49,7 +50,7 @@ interface RotationScenario {
   estimatedMarginPerHa: number | null;
 }
 
-type CropWithFamily = RotationCropInput & Pick<DesiredCrop, "waterDemand" | "expectedYield" | "expectedPrice" | "budgetIndex">;
+type CropWithFamily = RotationCropInput & Pick<DesiredCrop, "waterDemand" | "expectedYield" | "expectedPrice" | "budgetIndex" | "customCost">;
 type DesiredCropPatch = Partial<Omit<DesiredCrop, "id">>;
 
 interface SeasonRow {
@@ -111,6 +112,7 @@ export function CropRotationBuilder({
   const [rotationLength, setRotationLength] = useState("4");
   const [plan, setPlan] = useState<PlannedRotationCrop[] | null>(null);
   const [scenarios, setScenarios] = useState<RotationScenario[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState(0);
   const [seasons, setSeasons] = useState<SeasonRow[]>([]);
   const [cropClassifications, setCropClassifications] = useState<Record<string, CropClassification>>({});
   const [classifying, setClassifying] = useState(false);
@@ -167,6 +169,7 @@ export function CropRotationBuilder({
   function invalidatePlan() {
     setPlan(null);
     setScenarios([]);
+    setSelectedScenario(0);
     setSeasons([]);
     setError(null);
   }
@@ -186,6 +189,7 @@ export function CropRotationBuilder({
       expectedYield: "",
       expectedPrice: "",
       budgetIndex: "",
+      customCost: "",
     }]);
     setNextCropId((id) => id + 1);
     invalidatePlan();
@@ -266,8 +270,11 @@ export function CropRotationBuilder({
       };
       const budgetMargin = (crop: CropWithFamily): number | null => {
         const revenue = grossRevenue(crop);
-        const budget = crop.budgetIndex === "" ? undefined : budgets[Number(crop.budgetIndex)];
-        return revenue === null || !budget ? null : revenue - budget.cost_cad_per_hectare;
+        const budget = crop.budgetIndex === "" || crop.budgetIndex === "custom" ? undefined : budgets[Number(crop.budgetIndex)];
+        const cost = crop.budgetIndex === "custom"
+          ? crop.customCost.trim() === "" ? null : Number(crop.customCost)
+          : budget?.cost_cad_per_hectare ?? null;
+        return revenue === null || cost === null || !Number.isFinite(cost) || cost < 0 ? null : revenue - cost;
       };
       const makeScenario = (
         name: string,
@@ -365,8 +372,8 @@ export function CropRotationBuilder({
         makeScenario("Current rotation", desiredCropsWithFamilies, () =>
           "Year 1 is your current crop; future years follow the crop order you entered."),
         makeScenario("Budget margin focused", profitOrder, () => hasAllMargins
-          ? "Ordered by expected yield × price minus the selected Ontario budget. Land rent and other farm-specific costs are excluded."
-          : "Enter yield, price, and select a matching budget for every crop to rank by budget margin. Your entered order is used until all are available."),
+          ? "Ordered by expected yield × price minus the selected or entered cost. Ontario samples exclude land rent and other farm-specific costs; user-entered costs depend on what you include."
+          : "Enter yield, price, and select a budget or enter a cost for every crop to rank by budget margin. Your entered order is used until all are available."),
         makeScenario("Water conservation", waterOrder, (scenarioPlan) =>
           `${waterSummary(scenarioPlan)}. Lower relative-demand crops are scheduled first; this is not an irrigation-volume estimate.`),
         makeScenario("Soil regeneration", legumeFirst, (scenarioPlan) => {
@@ -376,17 +383,7 @@ export function CropRotationBuilder({
           return `${legumeYears} of ${futureYears.length} future seasons use legumes. Sequence: ${crops}. This is a family heuristic, not a validated soil-health score.`;
         }),
       ];
-      setScenarios(scenariosWithPlans.map((scenario) => {
-        if (!scenario.plan) return scenario;
-        const baseline = scenariosWithPlans[0].plan;
-        const matchesBaseline = baseline?.every((crop, index) => crop.name === scenario.plan?.[index]?.name);
-        return {
-          ...scenario,
-          note: matchesBaseline && scenario.name !== "Current rotation"
-            ? `${scenario.note} Your current crop choices and family alternation produce the same feasible order as Current rotation.`
-            : scenario.note,
-        };
-      }));
+      setScenarios(scenariosWithPlans);
     } catch (planningError) {
       setError(planningError instanceof Error ? planningError.message : "Unable to build this crop sequence.");
     } finally {
@@ -427,12 +424,12 @@ export function CropRotationBuilder({
     <section aria-labelledby="crop-plan-title" className="rotation-section">
       <p className="eyebrow">Your crop choices</p>
       <h2 id="crop-plan-title">Plan a crop rotation</h2>
-      <p className="rotation-provenance">
-        Enter crop choices and optional yield and local price estimates. Select a matching Ontario budget to estimate a margin before land rent and other farm-specific costs.
-      </p>
-      <p className="rotation-provenance">
-        <a href="https://www.ontario.ca/page/publication-60-field-crop-budgets" target="_blank" rel="noreferrer">Ontario Publication 60, 2026</a>: sample costs based on assumed practices and yields; input prices projected in November 2025. Actual field costs can differ.
-      </p>
+      <details className="crop-budget-source">
+        <summary>About Ontario budget estimates</summary>
+        <p className="rotation-provenance">
+          <a href="https://www.ontario.ca/page/publication-60-field-crop-budgets" target="_blank" rel="noreferrer">Ontario Publication 60, 2026</a>: sample costs based on assumed practices and yields; input prices projected in November 2025. Actual field costs can differ. Margin estimates exclude land rent and other farm-specific costs.
+        </p>
+      </details>
 
       <form className="crop-rotation-form" onSubmit={handleSubmit}>
         <div className="crop-entry-grid">
@@ -496,7 +493,7 @@ export function CropRotationBuilder({
                 <label>
                   Crop {index + 1}
                   <input
-                    onChange={(event) => updateDesiredCrop(crop.id, { name: event.target.value, budgetIndex: "", waterDemand: "unknown", waterDemandManual: false })}
+                    onChange={(event) => updateDesiredCrop(crop.id, { name: event.target.value, budgetIndex: "", customCost: "", waterDemand: "unknown", waterDemandManual: false })}
                     placeholder="e.g. Soybean"
                     required
                     value={crop.name}
@@ -573,21 +570,35 @@ export function CropRotationBuilder({
                   />
                 </label>
                 <label className="crop-estimate-input crop-budget-input">
-                  Ontario budget ($/ha)
+                  Cost source
                   <select
-                    disabled={budgetStatus !== "ready" || !budgets.some((budget) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop)))}
                     onChange={(event) => updateDesiredCrop(crop.id, { budgetIndex: event.target.value })}
                     value={crop.budgetIndex}
                   >
-                    <option value="">{budgetStatus === "loading" ? "Loading budgets" : budgetStatus === "unavailable" ? "Budget data unavailable" : !crop.name.trim() ? "Enter a crop first" : !budgets.some((budget) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop))) ? "No matching budget available" : "Select a matching budget"}</option>
+                    <option value="">{budgetStatus === "loading" ? "Loading Ontario budgets" : budgetStatus === "unavailable" ? "Ontario budgets unavailable" : !crop.name.trim() ? "Enter a crop first" : !budgets.some((budget) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop))) ? "No matching Ontario budget" : "Select a cost source"}</option>
+                    <option value="custom">Enter my own cost</option>
                     {budgets.map((budget, budgetIndex) => matchingBudgetCrops(crop.name).includes(cropNameKey(budget.crop)) && (
                       <option key={`${budget.crop}-${budget.practice}`} value={budgetIndex}>
                         {budget.crop}{budget.practice ? ` · ${budget.practice}` : ""} · ${budget.cost_cad_per_hectare}/ha
                       </option>
                     ))}
                   </select>
-                  {crop.budgetIndex !== "" && <small>2026 sample · excludes land rent and other farm-specific costs</small>}
+                  {crop.budgetIndex !== "" && crop.budgetIndex !== "custom" && <small>Ontario 2026 sample · excludes land rent and other farm-specific costs</small>}
                 </label>
+                {crop.budgetIndex === "custom" && (
+                  <label className="crop-estimate-input crop-budget-input">
+                    Your growing cost ($/ha)
+                    <input
+                      min="0"
+                      onChange={(event) => updateDesiredCrop(crop.id, { customCost: event.target.value })}
+                      placeholder="Enter cost per hectare"
+                      step="any"
+                      type="number"
+                      value={crop.customCost}
+                    />
+                    <small>Include the costs you want reflected in your estimate.</small>
+                  </label>
+                )}
                 {fieldSoil && (
                   <p className="crop-fit-inline">
                     Soil screen: {(() => {
@@ -640,61 +651,34 @@ export function CropRotationBuilder({
       {plan && (
         <div aria-live="polite" className="crop-plan-result">
           <h3>Rotation scenarios for {fieldName}</h3>
-          <p className="rotation-provenance">Each sequence uses your crop choices and avoids planting the same family in consecutive years. These are planning sequences, not performance ratings.</p>
+          <p className="rotation-provenance">Planning sequences, not performance ratings.</p>
+          <div aria-label="Rotation scenario" className="rotation-scenario-picker" role="group">
+            {scenarios.map((scenario, index) => (
+              <button
+                aria-pressed={selectedScenario === index}
+                className="rotation-scenario-option"
+                key={scenario.name}
+                onClick={() => setSelectedScenario(index)}
+                type="button"
+              >
+                {scenario.name}
+              </button>
+            ))}
+          </div>
           <ul className="rotation-scenario-list">
             {scenarios.map((scenario, index) => {
               const matchesBaseline = index > 0 && scenarios[0].plan?.every(
                 (crop, cropIndex) => crop.name === scenario.plan?.[cropIndex]?.name,
               );
               return (
-              <li key={scenario.name}>
+              <li hidden={selectedScenario !== index} key={scenario.name}>
                 <div className="rotation-scenario-heading">
                   <strong>{scenario.name}</strong>
+                  {matchesBaseline && <span>Same order as current rotation</span>}
                 </div>
-                <p className="rotation-scenario-note">{scenario.note}</p>
                 {scenario.plan ? (
                   <>
-                    <dl className="rotation-score-grid">
-                      <div>
-                        <dt>Average field soil fit</dt>
-                        <dd>{scenario.fieldFitScore == null
-                          ? "Needs field soil data"
-                          : `${scenario.fieldFitScore}/100`}</dd>
-                        {scenario.fieldFitScore != null && <small>{scenario.fieldFitCoveragePct}% of planned crops rated</small>}
-                      </div>
-                      <div>
-                        <dt>Family diversity</dt>
-                        <dd>{scenario.familyCount} of {scenario.plan.length - 1} future seasons</dd>
-                        <small>{scenario.familyConflictCount === 0 ? "No consecutive repeats" : `${scenario.familyConflictCount} consecutive repeats`}</small>
-                      </div>
-                      <div>
-                        <dt>Relative water demand</dt>
-                        <dd>{scenario.relativeWaterDemand == null
-                          ? "Enter crop demand"
-                          : `${scenario.relativeWaterDemand}/3`}</dd>
-                        {scenario.relativeWaterDemand != null && <small>1 = lower · 3 = higher</small>}
-                      </div>
-                      <div>
-                        <dt>Gross revenue estimate</dt>
-                        <dd>{scenario.estimatedGrossRevenuePerHa == null
-                          ? "Needs yield + price"
-                          : `$${scenario.estimatedGrossRevenuePerHa.toLocaleString()}/ha`}</dd>
-                        {scenario.estimatedGrossRevenuePerHa != null && <small>{scenario.revenueCoveragePct}% of future seasons priced · before costs</small>}
-                      </div>
-                      <div>
-                        <dt>Budget margin estimate</dt>
-                        <dd>{scenario.estimatedMarginPerHa == null
-                          ? "Needs yield, price + budget"
-                          : `$${scenario.estimatedMarginPerHa.toLocaleString()}/ha`}</dd>
-                        <small>Average per future season · excludes land rent and other farm-specific costs</small>
-                      </div>
-                    </dl>
-                    {matchesBaseline ? (
-                      <p className="rotation-scenario-sequence">
-                        Year-by-year order: {scenario.plan.map((crop) => `${crop.year}: ${crop.name}`).join(" → ")}
-                      </p>
-                    ) : (
-                    <ol className="crop-plan-timeline">
+                    <ol className="crop-plan-timeline" aria-label={`${scenario.name} crop sequence`}>
                       {scenario.plan.map((crop) => (
                         <li key={crop.year}>
                           <span>Year {crop.year}{crop.isCurrent ? " · Current" : ""}</span>
@@ -703,7 +687,45 @@ export function CropRotationBuilder({
                         </li>
                       ))}
                     </ol>
-                    )}
+                    <dl className="rotation-score-grid">
+                      <div>
+                        <dt>Average field soil fit</dt>
+                        <dd className={scenario.fieldFitScore == null ? "rotation-metric-pending" : undefined}>{scenario.fieldFitScore == null
+                          ? fieldSoil ? "Not rated" : "Needs field soil data"
+                          : `${scenario.fieldFitScore}/100`}</dd>
+                        {scenario.fieldFitScore != null && <small>{scenario.fieldFitCoveragePct}% of planned crops rated</small>}
+                      </div>
+                      <div>
+                        <dt>Family diversity</dt>
+                        <dd>{scenario.familyCount} distinct {scenario.familyCount === 1 ? "family" : "families"}</dd>
+                        <small>{scenario.plan.length - 1} future seasons · {scenario.familyConflictCount === 0 ? "No consecutive repeats" : `${scenario.familyConflictCount} consecutive repeats`}</small>
+                      </div>
+                      <div>
+                        <dt>Relative water demand</dt>
+                        <dd className={scenario.relativeWaterDemand == null ? "rotation-metric-pending" : undefined}>{scenario.relativeWaterDemand == null
+                          ? "Enter crop demand"
+                          : `${scenario.relativeWaterDemand}/3`}</dd>
+                        {scenario.relativeWaterDemand != null && <small>1 = lower · 3 = higher</small>}
+                      </div>
+                      <div>
+                        <dt>Gross revenue estimate</dt>
+                        <dd className={scenario.estimatedGrossRevenuePerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedGrossRevenuePerHa == null
+                          ? "Needs yield + price"
+                          : `$${scenario.estimatedGrossRevenuePerHa.toLocaleString()}/ha`}</dd>
+                        {scenario.estimatedGrossRevenuePerHa != null && <small>{scenario.revenueCoveragePct}% of future seasons priced · before costs</small>}
+                      </div>
+                      <div>
+                        <dt>Budget margin estimate</dt>
+                        <dd className={scenario.estimatedMarginPerHa == null ? "rotation-metric-pending" : undefined}>{scenario.estimatedMarginPerHa == null
+                          ? "Needs yield, price + budget"
+                          : `$${scenario.estimatedMarginPerHa.toLocaleString()}/ha`}</dd>
+                        <small>Average per future season · depends on costs included</small>
+                      </div>
+                    </dl>
+                    <details className="rotation-scenario-details">
+                      <summary>How this scenario works</summary>
+                      <p className="rotation-scenario-note">{scenario.note}</p>
+                    </details>
                   </>
                 ) : (
                   <p className="rotation-error">Add crops from more families or shorten the rotation.</p>

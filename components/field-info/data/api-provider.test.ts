@@ -4,20 +4,15 @@ import { describe, test } from "node:test";
 import { ApiProvider } from "./api-provider";
 
 describe("ApiProvider", () => {
-  test("uses the demo field metadata while marking the provenance as live", async () => {
+  test("exposes the configured live map layers", async () => {
     const provider = new ApiProvider();
-    const field = await provider.getField("demo-field-01");
-
-    assert.ok(field !== null);
-    assert.equal(field?.provenance.kind, "live");
-    assert.match(field?.provenance.label ?? "", /Google Cloud Storage/i);
-  });
-
-  test("preserves the mock layer schema for the UI", async () => {
-    const provider = new ApiProvider();
-    const layers = await provider.listLayers("demo-field-01");
+    const layers = await provider.listLayers();
 
     assert.ok(layers.length > 0);
-    assert.ok(layers.some((layer) => layer.id === "productivity"));
+    assert.ok(layers.some((layer) => layer.id === "satellite" && layer.available));
+    assert.ok(layers.some((layer) => layer.id === "ndvi" && layer.available));
+    assert.ok(layers.some((layer) => layer.id === "ndre" && !layer.available));
+    assert.ok(layers.some((layer) => layer.id === "msavi" && !layer.available));
+    assert.ok(!layers.some((layer) => String(layer.id) === "reci"));
   });
 });

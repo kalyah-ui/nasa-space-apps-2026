@@ -62,6 +62,7 @@ class CropClassCount(BaseModel):
     class_code: int
     pixel_count: int
     field_share_pct: float
+    label: str | None = None
 
 
 class SourceExtraction(BaseModel):

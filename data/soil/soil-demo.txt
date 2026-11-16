@@ -1,0 +1,4 @@
+sample_id,latitude,longitude,ph,phosphorus_mg_kg,potassium_mg_kg
+A,43.4500,-80.4900,6.5,20,110
+B,43.4502,-80.4901,6.1,14,90
+C,43.4498,-80.4899,7.0,28,125

@@ -1,9 +1,8 @@
-export type Coordinate = readonly [longitude: number, latitude: number];
+export type Coordinate = [longitude: number, latitude: number];
 
-export type FieldGeometry = {
-  type: "Polygon";
-  coordinates: Coordinate[][];
-};
+export type FieldGeometry =
+  | { type: "Polygon"; coordinates: Coordinate[][] }
+  | { type: "MultiPolygon"; coordinates: Coordinate[][][] };
 
 export type DataProvenance = {
   kind: "demo" | "live";
@@ -24,9 +23,6 @@ export type LayerId =
   | "ndvi"
   | "ndre"
   | "msavi"
-  | "reci"
-  | "mcari"
-  | "pri"
   | "moisture";
 
 export type LegendSpec = {
@@ -85,9 +81,55 @@ export type PointInspection = {
   provenance: DataProvenance;
 };
 
+export type FieldCollectionFeature = {
+  type: "Feature";
+  id: string;
+  properties: { name: string; areaHectares: number };
+  geometry: FieldGeometry;
+};
+
+export type FieldCollection = {
+  type: "FeatureCollection";
+  features: FieldCollectionFeature[];
+};
+
+export type MapOverlayData = {
+  image: string;
+  coordinates: [Coordinate, Coordinate, Coordinate, Coordinate];
+  averageNdvi: number | null;
+  clearPixelPercent: number;
+  maskedPixelPercent: number;
+  imageDate: string;
+  source: string;
+  sceneId: string;
+  provider: "bucket-sample" | "planetary-computer";
+  legend: null | LegendSpec;
+};
+
+export type SoilCropId =
+  | "corn"
+  | "soybean"
+  | "winter-wheat"
+  | "canola"
+  | "forage";
+
+export type SoilRegionCollection = import("@/lib/soil/types").SoilRegionCollection;
+
 export interface DataProvider {
+  listFields(signal?: AbortSignal): Promise<FieldCollection>;
   getField(fieldId: string): Promise<FieldSpec | null>;
-  listLayers(fieldId: string): Promise<LayerSpec[]>;
+  listLayers(fieldId?: string): Promise<LayerSpec[]>;
+  getMapOverlay(
+    field: FieldCollectionFeature,
+    layerId: "satellite" | "ndvi" | "elevation",
+    signal?: AbortSignal,
+  ): Promise<MapOverlayData>;
+  getSoilRegions(
+    bounds: [number, number, number, number],
+    crop: SoilCropId,
+    field?: FieldCollectionFeature | null,
+    signal?: AbortSignal,
+  ): Promise<SoilRegionCollection>;
   listLayerDates(fieldId: string, layerId: LayerId): Promise<string[]>;
   getLayerData(fieldId: string, layerId: LayerId, date?: string): Promise<LayerData>;
   inspectPoint(

@@ -236,9 +236,16 @@ function OttawaGcsRegionContext() {
           ) : null}
           {sample.crop_class_counts.length > 0 ? (
             <p className="landing-section-note">
-              2025 Ontario crop-inventory class codes (unlabelled):{" "}
+              2025 Ontario crop inventory
+              {sample.crop_class_counts.some((item) => !item.label)
+                ? " (unmatched classes shown by code)"
+                : ""}
+              :{" "}
               {sample.crop_class_counts
-                .map((item) => `${item.class_code}: ${formatNumber(item.field_share_pct, 1)}%`)
+                .map(
+                  (item) =>
+                    `${item.label ?? `Class ${item.class_code}`}: ${formatNumber(item.field_share_pct, 1)}%`,
+                )
                 .join(" · ")}.
             </p>
           ) : null}

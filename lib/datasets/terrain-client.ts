@@ -64,6 +64,7 @@ export interface CropClassCount {
   class_code: number;
   pixel_count: number;
   field_share_pct: number;
+  label?: string | null;
 }
 
 export interface SourceExtraction {
