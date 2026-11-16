@@ -21,29 +21,19 @@ export default function HomePage() {
           NASA Earth observation and open agricultural data, read together — so you can judge what
           a parcel supports today, and whether it still will in ten years.
         </p>
-        <div className="landing-cta-row">
-          <Link className="landing-cta is-primary" href="/discovery">
-            Browse parcels
-          </Link>
-          <Link className="landing-cta" href="/field-info">
-            Open Field Info
-          </Link>
-        </div>
       </section>
 
-      <FieldSnapshot />
-
-      <div aria-label="loam workflows" className="workflow-list">
+      <div aria-label="loam workflows" className="workflow-grid">
         {workflows.map((workflow) => (
-          <Link className="workflow-link" href={workflow.href} key={workflow.href}>
-            <div>
-              <h2 className="workflow-title">{workflow.title}</h2>
-              <p className="workflow-description">{workflow.description}</p>
-            </div>
+          <Link className="workflow-card" href={workflow.href} key={workflow.href}>
+            <h2 className="workflow-title">{workflow.title}</h2>
+            <p className="workflow-description">{workflow.description}</p>
             <span aria-hidden="true" className="workflow-arrow">→</span>
           </Link>
         ))}
       </div>
+
+      <FieldSnapshot />
     </SiteShell>
   );
 }

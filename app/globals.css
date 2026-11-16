@@ -275,8 +275,8 @@ h1 {
 .landing-hero {
   position: relative;
   overflow: hidden;
-  margin-bottom: var(--loam-space-6);
-  padding: clamp(32px, 6vw, 64px) clamp(24px, 5vw, 56px);
+  margin-bottom: var(--loam-space-5);
+  padding: clamp(24px, 3.5vw, 40px) clamp(22px, 4vw, 44px);
   border: 1px solid var(--loam-border);
   border-radius: var(--loam-radius-panel);
   /* Satellite-style backdrop: soft accent glow, faint field-boundary lines,
@@ -319,7 +319,7 @@ h1 {
 .landing-hero-name {
   margin: 4px 0 0;
   color: var(--loam-accent);
-  font-size: clamp(48px, 8vw, 76px);
+  font-size: clamp(38px, 6vw, 56px);
   font-weight: 700;
   line-height: 1;
 }
@@ -408,27 +408,47 @@ h1 {
   font-size: 13px;
 }
 
-.workflow-list {
+.workflow-grid {
   display: grid;
-  border-top: 1px solid var(--loam-border);
+  gap: var(--loam-space-3);
+  margin-bottom: var(--loam-space-6);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
-.workflow-link {
+.workflow-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 4px;
-  border-bottom: 1px solid var(--loam-border);
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+  border: 1px solid var(--loam-border);
+  border-radius: var(--loam-radius-panel);
+  background: var(--loam-panel);
   text-decoration: none;
+  transition:
+    border-color var(--loam-duration) var(--loam-ease),
+    background-color var(--loam-duration) var(--loam-ease);
 }
 
-.workflow-link .workflow-title {
+.workflow-card:hover {
+  border-color: var(--loam-accent);
+}
+
+.workflow-card:focus-visible {
+  outline: 2px solid var(--loam-accent);
+  outline-offset: 2px;
+}
+
+.workflow-card .workflow-title {
   transition: color var(--loam-duration) var(--loam-ease);
 }
 
-.workflow-link:hover .workflow-title {
+.workflow-card:hover .workflow-title {
   color: var(--loam-accent);
+}
+
+.workflow-card .workflow-arrow {
+  margin-top: auto;
+  padding-top: 10px;
 }
 
 .workflow-title {
@@ -447,6 +467,37 @@ h1 {
   color: var(--loam-accent);
   font-family: var(--loam-font-sans);
   font-size: 20px;
+}
+
+.landing-subsection {
+  margin-top: var(--loam-space-5);
+}
+
+.landing-subsection-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 550;
+}
+
+.source-muted {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+  color: var(--loam-muted);
+  font-family: var(--loam-font-sans);
+  font-size: 13px;
+}
+
+.source-muted .source-error-retry {
+  border-color: var(--loam-border);
+  color: var(--loam-muted);
+}
+
+.source-muted .source-error-retry:hover {
+  border-color: var(--loam-accent);
+  color: var(--loam-accent);
 }
 
 .placeholder {
