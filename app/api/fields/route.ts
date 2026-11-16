@@ -13,7 +13,10 @@ export async function GET() {
   } catch (error) {
     console.error("Could not load fields", error);
     return NextResponse.json(
-      { message: "Stored field boundaries could not be loaded." },
+      {
+        message:
+          "Field boundaries are unavailable because the server could not access the private field catalog. Check its Google Cloud credentials and bucket permissions.",
+      },
       { status: 500 },
     );
   }

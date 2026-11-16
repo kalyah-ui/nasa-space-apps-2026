@@ -106,6 +106,15 @@ export type MapOverlayData = {
   legend: null | LegendSpec;
 };
 
+export type SoilCropId =
+  | "corn"
+  | "soybean"
+  | "winter-wheat"
+  | "canola"
+  | "forage";
+
+export type SoilRegionCollection = import("@/lib/soil/types").SoilRegionCollection;
+
 export interface DataProvider {
   listFields(signal?: AbortSignal): Promise<FieldCollection>;
   getField(fieldId: string): Promise<FieldSpec | null>;
@@ -115,6 +124,12 @@ export interface DataProvider {
     layerId: "satellite" | "ndvi" | "elevation",
     signal?: AbortSignal,
   ): Promise<MapOverlayData>;
+  getSoilRegions(
+    bounds: [number, number, number, number],
+    crop: SoilCropId,
+    field?: FieldCollectionFeature | null,
+    signal?: AbortSignal,
+  ): Promise<SoilRegionCollection>;
   listLayerDates(fieldId: string, layerId: LayerId): Promise<string[]>;
   getLayerData(fieldId: string, layerId: LayerId, date?: string): Promise<LayerData>;
   inspectPoint(

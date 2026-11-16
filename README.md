@@ -104,26 +104,31 @@ Server-side overrides are `LANDSAT_GCS_BUCKET` and `LANDSAT_GCS_PREFIX`.
 
 #### Field boundaries
 
-Field boundaries are persisted by the Next.js server as GeoJSON in
-`data/fields/fields.geojson`. On first run, the existing Plot A and Plot B files
-are imported automatically. The map supports drawing, renaming, vertex editing,
-deleting, and uploading `.geojson`, `.json`, or `.kml` polygon files.
+Field boundaries are persisted by the Next.js server in the private GCS object
+`processed/fields/ontario-fields.geojson`. The browser requests them through
+`/api/fields`; it never reads GCS directly. Drawing, renaming, vertex editing,
+deleting, and `.geojson`, `.json`, or `.kml` uploads update the same private
+object.
 
 The current local field collection is extracted from Agriculture and Agri-Food
 Canada's 2023 Ontario OneSoil GeoPackage. The complete Ontario source contains
 678,096 polygons and is too large to send to the browser as one GeoJSON file,
 so the checked-in extractor creates a bounded collection around the demo map.
 After downloading `on_oneSoil_field_boundaries_2023.gpkg` into `data/fields/`,
-regenerate the collection with:
+regenerate and publish the collection with:
 
 ```bash
 node scripts/extract-ontario-fields.mjs
+npm run publish:fields
 ```
 
 The extraction defaults to a 10 km window centered near Arnprior. Override it
 with `ONTARIO_FIELDS_CENTER_LON`, `ONTARIO_FIELDS_CENTER_LAT`, and
 `ONTARIO_FIELDS_WINDOW_KM`. The source GeoPackage and generated runtime GeoJSON
-are ignored by Git because of their size and local mutability.
+are ignored by Git because of their size and local mutability. The publish step
+validates the generated collection and uploads it privately using Application
+Default Credentials. A missing GCS field object is reported as an error; the
+deployed app does not silently replace it with demo Plot A/Plot B boundaries.
 
 To test locally:
 
@@ -136,6 +141,114 @@ To test locally:
 5. Upload a GeoJSON or KML file containing Polygon or MultiPolygon features.
 6. Select **Elevation**, click a covered field, and verify the clipped elevation
    overlay and metre legend appear.
+
+#### CanSIS regional soil suitability and soil CSV uploads
+
+The **Productivity map** control displays regional soil-suitability polygons
+prepared from AAFC CanSIS Soil Landscapes of Canada v3.2. It is intentionally
+labelled **Regional soil suitability — not measured productivity** because the
+source is a 1:1,000,000 regional inventory, not a field soil test and not a
+yield/productivity model.
+
+The private source remains in
+`raw/cansis-soil-landscapes-canada-v3-2/`. A one-time server-side preparation
+script downloads only the required shapefile and join tables, filters Ontario
+components, reprojects NAD83 (EPSG:4269) to EPSG:4326, calculates top-20-cm and
+component-percentage-weighted attributes, simplifies the polygons, and writes
+the result to the private object
+`processed/cansis-slc-v3-2/ontario-regions.geojson`:
+
+```bash
+gcloud auth application-default login
+npm install
+npm run prepare:soil-regions
+```
+
+The authenticated identity needs read access to the raw prefix and write
+access to the processed prefix. At runtime it needs read access to the
+processed object. CSV uploads need write access to `uploads/soil-csv/`. These
+settings are server-side only and can be overridden with `SOIL_GCS_BUCKET`,
+`CANSIS_SOURCE_PREFIX`, `CANSIS_PROCESSED_OBJECT`, and `SOIL_UPLOAD_PREFIX`.
+Never use `NEXT_PUBLIC_` for these values or for credentials.
+
+To test locally:
+
+1. Run `npm run dev`, open `http://localhost:3000/field-info`, and select
+   **Productivity map**.
+2. Switch among corn, soybean, winter wheat, canola and forage. Verify that the
+   regional polygon colours and ratings update and that the legend includes
+   Good, Moderate, Limited and Insufficient data.
+3. Click a coloured region and verify texture percentages, pH, drainage,
+   organic carbon, rooting depth, limiting factors, components, source and the
+   regional-estimate note appear.
+4. Select **Ontario Field 565252** to exercise a known field crossing two SLC
+   regions. The current prepared data reports approximately 94.5% in polygon
+   545005 and 5.5% in polygon 545004; percentages may change only if the source
+   or field boundary is regenerated.
+5. Click **Upload soil data**, select a `.csv` no larger than 10 MB, and verify
+   progress followed by a success message. A non-CSV file, missing credentials,
+   or missing bucket write permission must show an error and must not report a
+   successful upload.
+
+If a OneDrive-synced checkout fails with an `EINVAL readlink` error in `.next`,
+use a separate ignored build cache in PowerShell:
+
+```powershell
+$env:NEXT_DIST_DIR = ".next-dev"
+npm run dev
+```
+
+The suitability rules and official source URLs live in
+`lib/soil/suitability.ts`. No official crop-specific LSRS rating table was
+present in the bucket, so the app does not claim these categories are LSRS.
+
+#### Public deployment with private map data
+
+The public website can display all map layers while the bucket remains private.
+Deploy the **Next.js application**, not only the FastAPI `Dockerfile`, because
+the field, elevation, Landsat, soil-region, and soil-upload endpoints are
+Next.js server routes. Copy `.env.example` into the hosting provider's
+configuration and set the values there; do not commit a populated `.env` file.
+
+For Google Cloud Run, attach a service account to the Next.js service and grant
+it the minimum required bucket permissions. Application Default Credentials are
+then automatic. For Vercel or another non-Google host, add either
+`GCP_SERVICE_ACCOUNT_JSON` or `GCP_SERVICE_ACCOUNT_JSON_BASE64` as a protected
+server-only secret. Never name either variable with `NEXT_PUBLIC_`.
+
+The runtime identity needs:
+
+- read access to the SRTM and Landsat raw prefixes;
+- read access to `processed/cansis-slc-v3-2/ontario-regions.geojson`;
+- read/write access to `processed/fields/ontario-fields.geojson` if public users
+  may add, edit, or delete shared fields;
+- write access to `uploads/soil-csv/` if CSV upload is enabled.
+
+Before deployment, run `npm run publish:fields` once from an authenticated
+machine. A Mapbox token only renders the basemap and does not grant GCS access.
+After deploying, verify `/api/fields` returns the real field collection and test
+Elevation, Satellite image, NDVI, and Productivity map from `/field-info`.
+
+`Dockerfile.frontend` builds the public Next.js service, including all map data
+routes. The existing `Dockerfile` remains the separate FastAPI backend. For a
+container deployment, pass the public Mapbox token at build time and provide
+Google credentials only to the running service:
+
+```bash
+docker build -f Dockerfile.frontend \
+  --build-arg NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN="$NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN" \
+  -t loam-frontend .
+docker run --rm -p 8080:8080 \
+  -e GOOGLE_CLOUD_PROJECT=nasa-spaceapps-2026 \
+  -e GCS_BUCKET_NAME=nasa_spaceapps_2026_loam \
+  -e GCP_SERVICE_ACCOUNT_JSON_BASE64="$GCP_SERVICE_ACCOUNT_JSON_BASE64" \
+  loam-frontend
+```
+
+On Cloud Run, omit the service-account JSON variable and attach the authorized
+service account to the service instead. On Vercel, configure the Mapbox token as
+a build/public environment variable and the GCP credential as a protected
+server-only environment variable.
 
 ### Backend
 

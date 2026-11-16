@@ -1,12 +1,11 @@
 import "server-only";
 
-import { Storage } from "@google-cloud/storage";
 import { fromArrayBuffer, fromUrl, type GeoTIFFImage } from "geotiff";
 import proj4 from "proj4";
 import sharp from "sharp";
 import type { FieldGeometry, FieldPosition } from "@/lib/fields/types";
+import { getDataBucketName, getServerStorage } from "@/lib/gcs/storage";
 
-const defaultBucketName = "nasa_spaceapps_2026_loam";
 const defaultPrefix =
   "raw/landsat-surface-reflectance-collection-2-level-2-ontario";
 const stacSearchUrl =
@@ -165,12 +164,7 @@ export class LandsatAccessError extends Error {
   }
 }
 
-const storage = new Storage({
-  projectId:
-    process.env.GOOGLE_CLOUD_PROJECT ??
-    process.env.GCLOUD_PROJECT ??
-    "nasa-spaceapps-2026",
-});
+const storage = getServerStorage();
 let sampleManifestPromise: Promise<SampleManifest> | null = null;
 
 function projectionName(epsg: number) {
@@ -241,7 +235,7 @@ function validateSampleManifest(value: unknown): SampleManifest {
 }
 
 async function loadSampleManifest(): Promise<SampleManifest> {
-  const bucketName = process.env.LANDSAT_GCS_BUCKET ?? defaultBucketName;
+  const bucketName = getDataBucketName(process.env.LANDSAT_GCS_BUCKET);
   const prefix = process.env.LANDSAT_GCS_PREFIX ?? defaultPrefix;
   try {
     const [buffer] = await storage
@@ -423,7 +417,7 @@ async function readWindow(image: GeoTIFFImage, window: RasterWindow) {
 }
 
 async function openBucketRaster(objectName: string): Promise<OpenRaster> {
-  const bucketName = process.env.LANDSAT_GCS_BUCKET ?? defaultBucketName;
+  const bucketName = getDataBucketName(process.env.LANDSAT_GCS_BUCKET);
   const [buffer] = await storage.bucket(bucketName).file(objectName).download();
   const geotiff = await fromArrayBuffer(toArrayBuffer(buffer));
   return {

@@ -8,6 +8,8 @@ import type {
   LayerSpec,
   MapOverlayData,
   PointInspection,
+  SoilCropId,
+  SoilRegionCollection,
 } from "./types";
 
 const liveProvenance = {
@@ -17,7 +19,7 @@ const liveProvenance = {
 
 const liveLayers: LayerSpec[] = [
   { id: "satellite", label: "Satellite image", category: "basemap", available: true },
-  { id: "productivity", label: "Productivity map", category: "thematic", available: false, unavailableReason: "A live productivity provider is not configured." },
+  { id: "productivity", label: "Productivity map", category: "thematic", available: true, units: "regional soil suitability" },
   { id: "soil-brightness", label: "Soil brightness", category: "thematic", available: false, unavailableReason: "A live soil-brightness provider is not configured." },
   { id: "elevation", label: "Elevation", category: "thematic", available: true, units: "metres" },
   { id: "ndvi", label: "NDVI", category: "vegetation", available: true, units: "NDVI" },
@@ -66,6 +68,12 @@ function toFieldSpec(field: FieldCollectionFeature): FieldSpec {
 }
 
 export class ApiProvider implements DataProvider {
+  constructor(
+    private readonly config: {
+      soilRegions: { endpoint: string };
+    } = { soilRegions: { endpoint: "/api/soil-regions" } },
+  ) {}
+
   async listFields(signal?: AbortSignal): Promise<FieldCollection> {
     return readJson<FieldCollection>(
       await fetch("/api/fields", { cache: "no-store", signal }),
@@ -127,6 +135,28 @@ export class ApiProvider implements DataProvider {
 
   async listLayerDates(_fieldId: string, _layerId: LayerId): Promise<string[]> {
     return [];
+  }
+
+  async getSoilRegions(
+    bounds: [number, number, number, number],
+    crop: SoilCropId,
+    field?: FieldCollectionFeature | null,
+    signal?: AbortSignal,
+  ): Promise<SoilRegionCollection> {
+    return readJson<SoilRegionCollection>(
+      await fetch(this.config.soilRegions.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bbox: bounds,
+          crop,
+          fieldGeometry: field?.geometry ?? null,
+        }),
+        cache: "no-store",
+        signal,
+      }),
+      "Regional soil suitability could not be loaded.",
+    );
   }
 
   async getLayerData(

@@ -1,95 +1,51 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { getDataBucketName, getServerStorage } from "@/lib/gcs/storage";
 import type {
-  FieldGeometry,
   StoredFieldCollection,
   StoredFieldFeature,
 } from "./types";
 import { getAreaHectares, parseFieldGeometry, validateFieldName } from "./validation";
 
-const fieldDirectory = path.join(process.cwd(), "data", "fields");
-const fieldFile = path.join(fieldDirectory, "fields.geojson");
-const legacyFiles = [
-  { id: "plot-a", path: path.join(process.cwd(), "public", "data", "PlotA.geojson") },
-  { id: "plot-b", path: path.join(process.cwd(), "public", "data", "PlotB.geojson") },
-];
+const bucketName = getDataBucketName(process.env.FIELDS_GCS_BUCKET);
+const objectName =
+  process.env.FIELDS_GCS_OBJECT ?? "processed/fields/ontario-fields.geojson";
+const storage = getServerStorage();
 
 let writeQueue: Promise<unknown> = Promise.resolve();
-
-type RawFeature = {
-  type?: unknown;
-  properties?: { name?: unknown } | null;
-  geometry?: { type?: unknown; coordinates?: unknown } | null;
-};
-
-function normalizeLegacyGeometry(feature: RawFeature): FieldGeometry {
-  const geometry = feature.geometry;
-  if (!geometry) {
-    throw new Error("Legacy field boundary has no geometry.");
-  }
-
-  if (geometry.type === "LineString") {
-    return parseFieldGeometry({
-      type: "Polygon",
-      coordinates: [geometry.coordinates],
-    });
-  }
-
-  return parseFieldGeometry(geometry);
-}
-
-async function seedLegacyFields(): Promise<StoredFieldCollection> {
-  const features: StoredFieldFeature[] = [];
-
-  for (const legacy of legacyFiles) {
-    const raw = JSON.parse(await readFile(legacy.path, "utf8")) as {
-      features?: unknown;
-    };
-    if (!Array.isArray(raw.features)) {
-      continue;
-    }
-
-    raw.features.forEach((value, index) => {
-      const source = value as RawFeature;
-      const geometry = normalizeLegacyGeometry(source);
-      const name = validateFieldName(source.properties?.name ?? `Field ${index + 1}`);
-      features.push({
-        type: "Feature",
-        id: index === 0 ? legacy.id : `${legacy.id}-${index + 1}`,
-        properties: { name, areaHectares: getAreaHectares(geometry) },
-        geometry,
-      });
-    });
-  }
-
-  return { type: "FeatureCollection", features };
-}
+let cachedCollection: StoredFieldCollection | null = null;
 
 async function writeCollection(collection: StoredFieldCollection): Promise<void> {
-  await mkdir(fieldDirectory, { recursive: true });
-  const temporaryFile = `${fieldFile}.${randomUUID()}.tmp`;
-  await writeFile(temporaryFile, `${JSON.stringify(collection, null, 2)}\n`, "utf8");
-  await rename(temporaryFile, fieldFile);
+  await storage
+    .bucket(bucketName)
+    .file(objectName)
+    .save(`${JSON.stringify(collection)}\n`, {
+      resumable: false,
+      contentType: "application/geo+json",
+      metadata: { cacheControl: "private, no-store" },
+    });
+  cachedCollection = collection;
 }
 
 async function readCollection(): Promise<StoredFieldCollection> {
+  if (cachedCollection) return cachedCollection;
   try {
-    const parsed = JSON.parse(await readFile(fieldFile, "utf8")) as StoredFieldCollection;
+    const [buffer] = await storage.bucket(bucketName).file(objectName).download();
+    const parsed = JSON.parse(buffer.toString("utf8")) as StoredFieldCollection;
     if (parsed.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
       throw new Error("Stored fields are not a valid GeoJSON FeatureCollection.");
     }
+    cachedCollection = parsed;
     return parsed;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
+    if ((error as { code?: number }).code === 404) {
+      throw new Error(
+        `The field catalog gs://${bucketName}/${objectName} is missing. Run npm run publish:fields with server-side Google Cloud credentials before deploying.`,
+        { cause: error },
+      );
     }
-
-    const seeded = await seedLegacyFields();
-    await writeCollection(seeded);
-    return seeded;
+    throw error;
   }
 }
 
@@ -118,8 +74,10 @@ export function createField(nameValue: unknown, geometryValue: unknown) {
       properties: { name, areaHectares: getAreaHectares(geometry) },
       geometry,
     };
-    collection.features.push(field);
-    await writeCollection(collection);
+    await writeCollection({
+      ...collection,
+      features: [...collection.features, field],
+    });
     return field;
   });
 }
@@ -147,8 +105,9 @@ export function updateField(
       properties: { name, areaHectares: getAreaHectares(geometry) },
       geometry,
     };
-    collection.features[index] = updated;
-    await writeCollection(collection);
+    const features = [...collection.features];
+    features[index] = updated;
+    await writeCollection({ ...collection, features });
     return updated;
   });
 }

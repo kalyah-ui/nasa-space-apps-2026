@@ -1,12 +1,10 @@
 import "server-only";
 
-import { Storage } from "@google-cloud/storage";
 import { fromArrayBuffer } from "geotiff";
 import sharp from "sharp";
+import { getDataBucketName, getServerStorage } from "@/lib/gcs/storage";
 
-const defaultBucketName = "nasa_spaceapps_2026_loam";
 const defaultObjectPrefix = "raw/srtm-global-1-arc-second:v003:ontario";
-const defaultProjectId = "nasa-spaceapps-2026";
 const maxCoveringTiles = 9;
 const maxCachedTiles = 2;
 const noDataFallback = -32767;
@@ -55,12 +53,7 @@ export class InvalidElevationGeometryError extends Error {
   }
 }
 
-const storage = new Storage({
-  projectId:
-    process.env.GOOGLE_CLOUD_PROJECT ??
-    process.env.GCLOUD_PROJECT ??
-    defaultProjectId,
-});
+const storage = getServerStorage();
 const tileCache = new Map<string, Promise<Buffer>>();
 
 function isPosition(value: unknown): value is Position {
@@ -238,7 +231,7 @@ function getCachedTile(
 }
 
 async function downloadTile(objectName: string): Promise<Buffer> {
-  const bucketName = process.env.SRTM_GCS_BUCKET ?? defaultBucketName;
+  const bucketName = getDataBucketName(process.env.SRTM_GCS_BUCKET);
   const objectPrefix = process.env.SRTM_GCS_PREFIX ?? defaultObjectPrefix;
   const file = storage.bucket(bucketName).file(`${objectPrefix}/${objectName}`);
 

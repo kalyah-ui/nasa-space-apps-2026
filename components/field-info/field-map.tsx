@@ -23,6 +23,8 @@ import type {
 import { SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
 import { fieldDataProvider } from "./data/provider-config";
 import type { FieldSpec, LayerId, MapOverlayData } from "./data/types";
+import type { SoilCropId, SoilRegionCollection } from "./data/types";
+import type { SoilRegionProperties } from "@/lib/soil/types";
 
 const fieldSourceId = "farm-fields";
 const fieldFillLayerId = "farm-fields-fill";
@@ -31,6 +33,9 @@ const elevationSourceId = "selected-field-elevation";
 const elevationLayerId = "selected-field-elevation-raster";
 const landsatSourceId = "selected-field-landsat";
 const landsatLayerId = "selected-field-landsat-raster";
+const soilSourceId = "regional-soil-suitability";
+const soilFillLayerId = "regional-soil-suitability-fill";
+const soilOutlineLayerId = "regional-soil-suitability-outline";
 
 type FieldMapProps = {
   selectedLayerId: LayerId;
@@ -54,6 +59,17 @@ type LandsatStatus =
   | { kind: "needs-field" }
   | { kind: "loading" }
   | { kind: "ready"; data: MapOverlayData }
+  | { kind: "error"; message: string };
+type SoilStatus =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "ready"; data: SoilRegionCollection }
+  | { kind: "empty"; message: string }
+  | { kind: "error"; message: string };
+type SoilUploadStatus =
+  | { kind: "idle" }
+  | { kind: "uploading"; percent: number }
+  | { kind: "success"; message: string }
   | { kind: "error"; message: string };
 type DraftField = { drawId: string; geometry: FieldGeometry };
 type GeocodingResponse = {
@@ -105,6 +121,12 @@ function removeLandsatOverlay(map: mapboxgl.Map) {
   if (map.getSource(landsatSourceId)) map.removeSource(landsatSourceId);
 }
 
+function removeSoilOverlay(map: mapboxgl.Map) {
+  if (map.getLayer(soilOutlineLayerId)) map.removeLayer(soilOutlineLayerId);
+  if (map.getLayer(soilFillLayerId)) map.removeLayer(soilFillLayerId);
+  if (map.getSource(soilSourceId)) map.removeSource(soilSourceId);
+}
+
 function getErrorMessage(data: unknown, fallback: string): string {
   return data &&
     typeof data === "object" &&
@@ -148,6 +170,7 @@ function toFieldSpec(field: StoredFieldFeature): FieldSpec {
 export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const soilInputRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
   const fieldsRef = useRef<StoredFieldCollection>({
@@ -160,6 +183,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   const addressSearchAbortControllerRef = useRef<AbortController | null>(null);
   const elevationAbortControllerRef = useRef<AbortController | null>(null);
   const landsatAbortControllerRef = useRef<AbortController | null>(null);
+  const soilAbortControllerRef = useRef<AbortController | null>(null);
 
   const [addressQuery, setAddressQuery] = useState("");
   const [addressSearchError, setAddressSearchError] = useState<string | null>(null);
@@ -178,6 +202,14 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   const [fieldToolMessage, setFieldToolMessage] = useState<string | null>(null);
   const [elevationStatus, setElevationStatus] = useState<ElevationStatus>({ kind: "idle" });
   const [landsatStatus, setLandsatStatus] = useState<LandsatStatus>({ kind: "idle" });
+  const [soilStatus, setSoilStatus] = useState<SoilStatus>({ kind: "idle" });
+  const [soilCrop, setSoilCrop] = useState<SoilCropId>("corn");
+  const [selectedSoilRegion, setSelectedSoilRegion] =
+    useState<SoilRegionProperties | null>(null);
+  const [soilUploadStatus, setSoilUploadStatus] = useState<SoilUploadStatus>({
+    kind: "idle",
+  });
+  const [soilViewportRevision, setSoilViewportRevision] = useState(0);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -307,6 +339,33 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
         });
 
         map.on("click", (event) => {
+          if (map?.getLayer(soilFillLayerId)) {
+            const renderedSoil = map.queryRenderedFeatures(event.point, {
+              layers: [soilFillLayerId],
+            })[0];
+            if (renderedSoil?.properties) {
+              const properties = renderedSoil.properties as Record<string, unknown>;
+              try {
+                setSelectedSoilRegion({
+                  ...properties,
+                  limitingFactors:
+                    typeof properties.limitingFactors === "string"
+                      ? JSON.parse(properties.limitingFactors)
+                      : properties.limitingFactors,
+                  components:
+                    typeof properties.components === "string"
+                      ? JSON.parse(properties.components)
+                      : properties.components,
+                  bbox:
+                    typeof properties.bbox === "string"
+                      ? JSON.parse(properties.bbox)
+                      : properties.bbox,
+                } as SoilRegionProperties);
+              } catch {
+                setSelectedSoilRegion(null);
+              }
+            }
+          }
           if (!map?.getLayer(fieldFillLayerId)) return;
           if (draw.getMode() !== "simple_select") return;
 
@@ -393,6 +452,9 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
           setFieldToolError(null);
           setFieldToolMessage(null);
         });
+        map.on("moveend", () => {
+          if (active) setSoilViewportRevision((value) => value + 1);
+        });
 
         resizeObserver = new ResizeObserver(() => map?.resize());
         resizeObserver.observe(mapContainerRef.current);
@@ -415,6 +477,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
       addressSearchAbortControllerRef.current?.abort();
       elevationAbortControllerRef.current?.abort();
       landsatAbortControllerRef.current?.abort();
+      soilAbortControllerRef.current?.abort();
       resizeObserver?.disconnect();
       drawRef.current = null;
       if (mapRef.current === map) mapRef.current = null;
@@ -483,6 +546,121 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     void loadElevationOverlay();
     return () => controller.abort();
   }, [isMapReady, selectedField, selectedLayerId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady) return;
+    const activeMap = map;
+    soilAbortControllerRef.current?.abort();
+    removeSoilOverlay(activeMap);
+    setSelectedSoilRegion(null);
+    if (selectedLayerId !== "productivity") {
+      setSoilStatus({ kind: "idle" });
+      return;
+    }
+
+    const controller = new AbortController();
+    soilAbortControllerRef.current = controller;
+    const bounds = activeMap.getBounds();
+    const viewport: [number, number, number, number] = [
+      bounds.getWest(),
+      bounds.getSouth(),
+      bounds.getEast(),
+      bounds.getNorth(),
+    ];
+    setSoilStatus({ kind: "loading" });
+
+    async function loadSoilRegions() {
+      try {
+        const data = await fieldDataProvider.getSoilRegions(
+          viewport,
+          soilCrop,
+          selectedField,
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        if (data.features.length === 0) {
+          setSoilStatus({
+            kind: "empty",
+            message: "No prepared CanSIS SLC regions intersect the current map view.",
+          });
+          return;
+        }
+        activeMap.addSource(soilSourceId, {
+          type: "geojson",
+          data,
+        } satisfies GeoJSONSourceSpecification);
+        activeMap.addLayer(
+          {
+            id: soilFillLayerId,
+            type: "fill",
+            source: soilSourceId,
+            paint: {
+              "fill-color": [
+                "match",
+                ["get", "rating"],
+                "Good",
+                "#4f9f62",
+                "Moderate",
+                "#e0b84f",
+                "Limited",
+                "#c9654f",
+                "Insufficient data",
+                "#8b8f91",
+                "#8b8f91",
+              ],
+              "fill-opacity": 0.58,
+            },
+          },
+          fieldFillLayerId,
+        );
+        activeMap.addLayer(
+          {
+            id: soilOutlineLayerId,
+            type: "line",
+            source: soilSourceId,
+            paint: {
+              "line-color": "#f6f1de",
+              "line-opacity": 0.72,
+              "line-width": 1.2,
+            },
+          },
+          fieldFillLayerId,
+        );
+        if (selectedField) {
+          const primaryRegion = [...data.features]
+            .filter((feature) => (feature.properties.overlapPercent ?? 0) > 0)
+            .sort(
+              (first, second) =>
+                (second.properties.overlapPercent ?? 0) -
+                (first.properties.overlapPercent ?? 0),
+            )[0];
+          setSelectedSoilRegion(primaryRegion?.properties ?? null);
+        }
+        setSoilStatus({ kind: "ready", data });
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          removeSoilOverlay(activeMap);
+          setSoilStatus({
+            kind: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Regional soil suitability could not be loaded.",
+          });
+        }
+      }
+    }
+
+    void loadSoilRegions();
+    return () => controller.abort();
+  }, [
+    isMapReady,
+    selectedField,
+    selectedLayerId,
+    soilCrop,
+    soilViewportRevision,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -773,6 +951,51 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     }
   }
 
+  function handleSoilUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setSoilUploadStatus({ kind: "error", message: "Only CSV files are accepted." });
+      return;
+    }
+
+    const form = new FormData();
+    form.append("file", file);
+    const request = new XMLHttpRequest();
+    request.open("POST", "/api/soil-upload");
+    request.responseType = "json";
+    request.upload.onprogress = (progressEvent) => {
+      if (!progressEvent.lengthComputable) return;
+      setSoilUploadStatus({
+        kind: "uploading",
+        percent: Math.round((progressEvent.loaded / progressEvent.total) * 100),
+      });
+    };
+    request.onload = () => {
+      const data = request.response as ApiErrorResponse | null;
+      if (request.status >= 200 && request.status < 300) {
+        setSoilUploadStatus({
+          kind: "success",
+          message: `${file.name} was stored successfully.`,
+        });
+      } else {
+        setSoilUploadStatus({
+          kind: "error",
+          message: getErrorMessage(data, "The soil CSV could not be stored."),
+        });
+      }
+    };
+    request.onerror = () => {
+      setSoilUploadStatus({
+        kind: "error",
+        message: "The soil CSV upload failed before storage was confirmed.",
+      });
+    };
+    setSoilUploadStatus({ kind: "uploading", percent: 0 });
+    request.send(form);
+  }
+
   async function handleAddressSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -912,6 +1135,24 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               ref={importInputRef}
               type="file"
             />
+            <button
+              disabled={soilUploadStatus.kind === "uploading"}
+              onClick={() => soilInputRef.current?.click()}
+              type="button"
+            >
+              {soilUploadStatus.kind === "uploading"
+                ? `Uploading ${soilUploadStatus.percent}%`
+                : "Upload soil data"}
+            </button>
+            <input
+              accept=".csv,text/csv"
+              className="field-workspace-visually-hidden"
+              id="soil-data-upload"
+              name="soil-data-upload"
+              onChange={handleSoilUpload}
+              ref={soilInputRef}
+              type="file"
+            />
           </div>
         </>
       ) : null}
@@ -1019,6 +1260,18 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
         </div>
       ) : null}
 
+      {soilUploadStatus.kind === "success" || soilUploadStatus.kind === "error" ? (
+        <div
+          aria-live="polite"
+          className={`field-map-soil-upload-feedback${
+            soilUploadStatus.kind === "error" ? " is-error" : ""
+          }`}
+          role={soilUploadStatus.kind === "error" ? "alert" : "status"}
+        >
+          {soilUploadStatus.message}
+        </div>
+      ) : null}
+
       {!mapError && selectedLayerId === "elevation" ? (
         <div
           aria-live="polite"
@@ -1108,6 +1361,122 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
                 {landsatStatus.data.source} · {landsatStatus.data.sceneId}
               </span>
             </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!mapError && selectedLayerId === "productivity" ? (
+        <div
+          aria-live="polite"
+          className={`field-map-elevation-panel field-map-soil-panel${
+            soilStatus.kind === "error" ? " is-error" : ""
+          }`}
+          role={soilStatus.kind === "error" ? "alert" : "status"}
+        >
+          <strong>Regional soil suitability — not measured productivity</strong>
+          <label className="field-map-soil-crop">
+            Crop
+            <select
+              onChange={(event) => setSoilCrop(event.target.value as SoilCropId)}
+              value={soilCrop}
+            >
+              <option value="corn">Corn</option>
+              <option value="soybean">Soybean</option>
+              <option value="winter-wheat">Winter wheat</option>
+              <option value="canola">Canola</option>
+              <option value="forage">Forage</option>
+            </select>
+          </label>
+          {soilStatus.kind === "loading" ? <span>Loading CanSIS regions...</span> : null}
+          {soilStatus.kind === "empty" || soilStatus.kind === "error" ? (
+            <span>{soilStatus.message}</span>
+          ) : null}
+          {soilStatus.kind === "ready" ? (
+            <>
+              <div className="field-map-soil-legend" aria-label="Suitability legend">
+                {[
+                  ["Good", "#4f9f62"],
+                  ["Moderate", "#e0b84f"],
+                  ["Limited", "#c9654f"],
+                  ["Insufficient data", "#8b8f91"],
+                ].map(([label, color]) => (
+                  <span key={label}>
+                    <i aria-hidden="true" style={{ background: color }} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <small>
+                AAFC CanSIS SLC v3.2 · 1:1,000,000 · Regional estimate, not a
+                soil test
+              </small>
+              {selectedField ? (
+                <div className="field-map-soil-overlaps">
+                  <b>Selected-field regions</b>
+                  {soilStatus.data.features
+                    .filter((feature) => (feature.properties.overlapPercent ?? 0) > 0)
+                    .sort(
+                      (first, second) =>
+                        (second.properties.overlapPercent ?? 0) -
+                        (first.properties.overlapPercent ?? 0),
+                    )
+                    .map((feature) => (
+                      <button
+                        key={feature.id}
+                        onClick={() => setSelectedSoilRegion(feature.properties)}
+                        type="button"
+                      >
+                        {feature.properties.polyId}: {feature.properties.overlapPercent}% ·{" "}
+                        {feature.properties.rating}
+                      </button>
+                    ))}
+                  {soilStatus.data.features.every(
+                    (feature) => (feature.properties.overlapPercent ?? 0) <= 0,
+                  ) ? (
+                    <span>No region overlap was calculated for this field.</span>
+                  ) : null}
+                </div>
+              ) : null}
+              {selectedSoilRegion ? (
+                <div className="field-map-soil-details">
+                  <b>
+                    Region {selectedSoilRegion.polyId} · {selectedSoilRegion.rating}
+                  </b>
+                  <span>
+                    Texture: {selectedSoilRegion.sand?.toFixed(1) ?? "Unavailable"}% sand, {" "}
+                    {selectedSoilRegion.silt?.toFixed(1) ?? "Unavailable"}% silt, {" "}
+                    {selectedSoilRegion.clay?.toFixed(1) ?? "Unavailable"}% clay
+                  </span>
+                  <span>
+                    pH: {selectedSoilRegion.ph?.toFixed(1) ?? "Unavailable"} · Drainage:{" "}
+                    {selectedSoilRegion.drainage ?? "Unavailable"}
+                  </span>
+                  <span>
+                    Organic carbon: {selectedSoilRegion.organicCarbon?.toFixed(1) ?? "Unavailable"}% · Rooting depth: {" "}
+                    {selectedSoilRegion.rootDepth ?? "Unavailable"}
+                  </span>
+                  <span>
+                    Dominant soil: {selectedSoilRegion.dominantSoil ?? "Unavailable"} {" "}
+                    {selectedSoilRegion.dominantPercent !== null
+                      ? `(${selectedSoilRegion.dominantPercent}%)`
+                      : ""}
+                  </span>
+                  <span>
+                    Components: {selectedSoilRegion.components
+                      .map(
+                        (component) =>
+                          `${component.soilName ?? component.soilId} ${component.percent}%`,
+                      )
+                      .join(", ")}
+                  </span>
+                  <span>
+                    Limiting factors: {selectedSoilRegion.limitingFactors.join(" ")}
+                  </span>
+                </div>
+              ) : (
+                <small>Click a coloured region for soil details.</small>
+              )}
+            </>
           ) : null}
         </div>
       ) : null}

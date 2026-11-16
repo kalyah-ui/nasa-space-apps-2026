@@ -1988,6 +1988,27 @@ h1 {
   color: var(--farmish-danger-ink);
 }
 
+.field-map-soil-upload-feedback {
+  position: absolute;
+  z-index: 4;
+  top: 118px;
+  left: 16px;
+  max-width: min(440px, calc(100% - 96px));
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgb(25 34 28 / 96%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  color: var(--farmish-map-text);
+  font-size: 11px;
+}
+
+.field-map-soil-upload-feedback.is-error {
+  border-color: var(--farmish-danger-border);
+  background: rgb(59 31 29 / 96%);
+  color: var(--farmish-danger-ink);
+}
+
 .field-workspace-map .mapboxgl-ctrl-group:empty {
   display: none;
 }
@@ -2052,6 +2073,91 @@ h1 {
 .field-map-landsat-stat,
 .field-map-landsat-source {
   grid-column: 1 / -1;
+}
+
+.field-map-soil-panel {
+  display: grid;
+  width: min(420px, calc(100% - 48px));
+  max-height: min(650px, calc(100% - 48px));
+  gap: 9px;
+  overflow: auto;
+}
+
+.field-map-soil-panel > strong {
+  font-size: 13px;
+}
+
+.field-map-soil-panel small {
+  color: var(--farmish-map-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.field-map-soil-crop {
+  display: grid;
+  grid-template-columns: auto minmax(130px, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--farmish-map-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.field-map-soil-crop select {
+  min-width: 0;
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: var(--farmish-map-background);
+  color: var(--farmish-map-text);
+  font: inherit;
+  text-transform: none;
+}
+
+.field-map-soil-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+  font-size: 10px;
+}
+
+.field-map-soil-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-map-soil-legend i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 2px;
+}
+
+.field-map-soil-overlaps,
+.field-map-soil-details {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid var(--farmish-map-border);
+  padding-top: 8px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.field-map-soil-overlaps button {
+  border: 1px solid var(--farmish-map-border);
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: transparent;
+  color: var(--farmish-map-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.field-map-soil-overlaps button:hover {
+  border-color: var(--farmish-map-accent);
 }
 
 .field-map-landsat-stat {

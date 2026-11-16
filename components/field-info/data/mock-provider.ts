@@ -293,6 +293,10 @@ export class MockProvider implements DataProvider {
     throw new Error("Raster overlays are unavailable from the mock provider.");
   }
 
+  async getSoilRegions(): Promise<never> {
+    throw new Error("Regional CanSIS soil data is unavailable from the mock provider.");
+  }
+
   async listLayerDates(fieldId: string, layerId: LayerId): Promise<string[]> {
     assertKnownField(fieldId);
     getLayerSpec(layerId);
