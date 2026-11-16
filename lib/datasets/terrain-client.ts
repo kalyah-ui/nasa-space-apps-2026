@@ -11,7 +11,25 @@ export interface TerrainSample {
   soil_landscapes: SoilLandscapeObservation[];
   crop_class_counts: CropClassCount[];
   crop_sample_count: number;
+  landsat_observation: LandsatObservation | null;
+  flood_map_studies: FloodMapStudyObservation[];
   sources: SourceExtraction[];
+}
+
+export interface LandsatObservation {
+  scene_id: string;
+  acquired_at: string;
+  mean_ndvi: number;
+  clear_pixel_count: number;
+}
+
+export interface FloodMapStudyObservation {
+  province_or_territory: string;
+  study_name: string;
+  study_date: string | null;
+  availability_status: string | null;
+  study_status: string | null;
+  public_link: string | null;
 }
 
 export interface SoilComponent {
@@ -57,6 +75,55 @@ export interface SourceExtraction {
 }
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_DATA_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const ottawaSceneManifestObject =
+  "raw/landsat-surface-reflectance-collection-2-level-2-ontario/landsat-sample/LC08_L2SP_016028_20260923_02_T1/manifest.json";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function sceneCoordinate(value: unknown, label: string): [number, number] {
+  if (
+    !Array.isArray(value) ||
+    typeof value[0] !== "number" ||
+    !Number.isFinite(value[0]) ||
+    typeof value[1] !== "number" ||
+    !Number.isFinite(value[1])
+  ) {
+    throw new Error(`The Ottawa Landsat manifest has an invalid ${label} coordinate.`);
+  }
+  return [value[0], value[1]];
+}
+
+export async function loadOttawaLandsatSceneField(signal?: AbortSignal): Promise<FieldOption> {
+  const objectPath = ottawaSceneManifestObject.split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(`${apiBaseUrl}/api/data/objects/${objectPath}`, {
+    signal,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Could not load the Ottawa Landsat manifest (${response.status}).`);
+  }
+
+  const manifest: unknown = await response.json();
+  if (!isRecord(manifest) || !isRecord(manifest.boundsWgs84)) {
+    throw new Error("The Ottawa Landsat manifest does not contain scene bounds.");
+  }
+  const bounds = manifest.boundsWgs84;
+  const southwest = sceneCoordinate(bounds.southwest, "southwest");
+  const southeast = sceneCoordinate(bounds.southeast, "southeast");
+  const northeast = sceneCoordinate(bounds.northeast, "northeast");
+  const northwest = sceneCoordinate(bounds.northwest, "northwest");
+
+  return {
+    id: "ottawa-valley-landsat-scene",
+    name: "Ottawa Valley Landsat scene",
+    geometry: {
+      type: "Polygon",
+      coordinates: [[southwest, southeast, northeast, northwest, southwest]],
+    },
+  };
+}
 
 export async function getTerrainSample(field: FieldOption, signal?: AbortSignal): Promise<TerrainSample> {
   const url = new URL(`${apiBaseUrl}/api/data/terrain`);

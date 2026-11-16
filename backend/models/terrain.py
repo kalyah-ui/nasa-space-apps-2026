@@ -78,6 +78,22 @@ class SoilLandscapeObservation(BaseModel):
     components: list[SoilComponent]
 
 
+class LandsatObservation(BaseModel):
+    scene_id: str
+    acquired_at: datetime
+    mean_ndvi: float
+    clear_pixel_count: int
+
+
+class FloodMapStudyObservation(BaseModel):
+    province_or_territory: str
+    study_name: str
+    study_date: str | None
+    availability_status: str | None
+    study_status: str | None
+    public_link: str | None
+
+
 class TerrainSample(BaseModel):
     field_id: str
     field_name: str
@@ -89,4 +105,6 @@ class TerrainSample(BaseModel):
     soil_landscapes: list[SoilLandscapeObservation]
     crop_class_counts: list[CropClassCount]
     crop_sample_count: int
+    landsat_observation: LandsatObservation | None
+    flood_map_studies: list[FloodMapStudyObservation]
     sources: list[SourceExtraction]

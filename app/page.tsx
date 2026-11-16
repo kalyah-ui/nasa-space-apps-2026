@@ -6,7 +6,6 @@ const workflows = [
   { href: "/discovery", title: "Farm Discovery", description: "Assess land potential, environmental risks, and crop fit." },
   { href: "/field-info", title: "Field Info", description: "Review recent moisture, rainfall, vegetation, and terrain." },
   { href: "/rotation-planner", title: "Rotation Planner", description: "Compare strategies for water use, soil health, and resilience." },
-  { href: "/future-farm", title: "Future Farm", description: "Explore how long-term climate pressures may shape farm resilience." },
 ];
 
 export default function HomePage() {

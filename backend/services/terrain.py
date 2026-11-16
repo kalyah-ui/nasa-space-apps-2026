@@ -1,10 +1,13 @@
+import json
 import math
 import os
 import tempfile
 import threading
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import quote
 
 import fiona
 import numpy as np
@@ -17,6 +20,8 @@ from shapely.geometry import mapping, shape
 from backend.models.terrain import (
     CropClassCount,
     FieldTerrainRequest,
+    FloodMapStudyObservation,
+    LandsatObservation,
     SoilComponent,
     SoilHorizon,
     SoilLandscapeObservation,
@@ -27,6 +32,12 @@ from backend.services.gcs import get_bucket
 
 SRTM_TIFF_PREFIX = "raw/srtm-global-1-arc-second:v003:ontario/"
 ACI_RASTER_OBJECT = "raw/annual-crop-inventory_2025_on_v1/aci_2025_on_v1.tif"
+LANDSAT_SCENE_PREFIX = (
+    "raw/landsat-surface-reflectance-collection-2-level-2-ontario/"
+    "landsat-sample/LC08_L2SP_016028_20260923_02_T1/"
+)
+LANDSAT_MANIFEST_OBJECT = f"{LANDSAT_SCENE_PREFIX}manifest.json"
+FLOOD_MAP_GDB_PREFIX = "raw/canada_flood_map_inventory.gdb/"
 SOIL_PREFIX = "raw/cansis-soil-landscapes-canada-v3-2/"
 SOIL_SHAPE_OBJECT = f"{SOIL_PREFIX}ca_all_slc_v3r2.shp"
 SOIL_ANALYTIC_OBJECTS = [
@@ -42,6 +53,10 @@ SOIL_ANALYTIC_OBJECTS = [
 ]
 MAX_SRTM_TIFF_BYTES = 64 * 1024 * 1024
 MAX_ACI_TIFF_BYTES = 200 * 1024 * 1024
+MAX_LANDSAT_MANIFEST_BYTES = 64 * 1024
+MAX_LANDSAT_TIFF_BYTES = 2 * 1024 * 1024
+MAX_FLOOD_GDB_OBJECT_BYTES = 8 * 1024 * 1024
+MAX_FLOOD_GDB_TOTAL_BYTES = 16 * 1024 * 1024
 MAX_SOIL_SHAPE_BYTES = 64 * 1024 * 1024
 MAX_SOIL_TABLE_BYTES = 32 * 1024 * 1024
 GCS_CACHE_DIR = Path(os.environ.get("LOAM_GCS_CACHE_DIR", tempfile.gettempdir())) / "loam-gcs-cache"
@@ -49,8 +64,17 @@ GCS_CACHE_LOCK = threading.Lock()
 
 
 def _cached_gcs_file(object_name: str, max_bytes: int) -> Path:
+    if (
+        not object_name
+        or object_name.startswith("/")
+        or "\\" in object_name
+        or any(part in {".", ".."} for part in object_name.split("/"))
+    ):
+        raise ValueError("Invalid GCS cache object path.")
+
     relative_path = PurePosixPath(object_name)
-    cache_path = GCS_CACHE_DIR.joinpath(*relative_path.parts)
+    safe_parts = [quote(part, safe="._-") for part in relative_path.parts]
+    cache_path = GCS_CACHE_DIR.joinpath(*safe_parts)
     if cache_path.is_file() and cache_path.stat().st_size > 0:
         return cache_path
 
@@ -182,6 +206,104 @@ def sample_crop_inventory_dataset(
         ],
         total,
     )
+
+
+def sample_landsat_ndvi_dataset(
+    red_dataset: rasterio.DatasetReader,
+    nir_dataset: rasterio.DatasetReader,
+    qa_pixel_dataset: rasterio.DatasetReader,
+    geometry: dict[str, Any],
+    reflectance_scale: float,
+    reflectance_offset: float,
+    reflectance_nodata: int,
+    qa_mask_bits: dict[str, int],
+) -> tuple[float, int]:
+    datasets = (red_dataset, nir_dataset, qa_pixel_dataset)
+    if (
+        red_dataset.crs is None
+        or any(
+            dataset.crs != red_dataset.crs
+            or dataset.transform != red_dataset.transform
+            or dataset.shape != red_dataset.shape
+            for dataset in datasets[1:]
+        )
+    ):
+        raise ValueError("Landsat red, NIR, and QA rasters must share one grid.")
+    if not math.isfinite(reflectance_scale) or reflectance_scale <= 0 or not math.isfinite(reflectance_offset):
+        raise ValueError("Landsat reflectance scale and offset must be finite.")
+    if not qa_mask_bits or any(not 0 <= bit <= 15 for bit in qa_mask_bits.values()):
+        raise ValueError("Landsat QA mask bits are invalid.")
+
+    projected_geometry = transform_geom("EPSG:4326", red_dataset.crs, geometry)
+    try:
+        red_data, _ = mask_raster(red_dataset, [projected_geometry], crop=True, filled=False)
+        nir_data, _ = mask_raster(nir_dataset, [projected_geometry], crop=True, filled=False)
+        qa_data, _ = mask_raster(qa_pixel_dataset, [projected_geometry], crop=True, filled=False)
+    except ValueError as error:
+        raise ValueError("The selected area does not overlap the Landsat scene.") from error
+
+    red_raw = np.asarray(red_data[0].data, dtype=np.float64)
+    nir_raw = np.asarray(nir_data[0].data, dtype=np.float64)
+    qa_values = np.asarray(qa_data[0].data, dtype=np.uint16)
+    valid = ~(
+        np.ma.getmaskarray(red_data[0])
+        | np.ma.getmaskarray(nir_data[0])
+        | np.ma.getmaskarray(qa_data[0])
+    )
+    valid &= (red_raw != reflectance_nodata) & (nir_raw != reflectance_nodata)
+
+    qa_mask = sum(1 << bit for bit in qa_mask_bits.values())
+    valid &= (qa_values & qa_mask) == 0
+
+    red_reflectance = red_raw * reflectance_scale + reflectance_offset
+    nir_reflectance = nir_raw * reflectance_scale + reflectance_offset
+    denominator = nir_reflectance + red_reflectance
+    valid &= (
+        np.isfinite(red_reflectance)
+        & np.isfinite(nir_reflectance)
+        & np.isfinite(denominator)
+        & (denominator != 0)
+    )
+    clear_pixel_count = int(np.count_nonzero(valid))
+    if clear_pixel_count == 0:
+        raise ValueError("The selected area has no clear Landsat pixels.")
+
+    ndvi = (nir_reflectance[valid] - red_reflectance[valid]) / denominator[valid]
+    return round(float(np.mean(ndvi)), 4), clear_pixel_count
+
+
+def sample_flood_map_studies(
+    dataset: fiona.Collection,
+    geometry: dict[str, Any],
+) -> list[FloodMapStudyObservation]:
+    if not dataset.crs:
+        raise ValueError("The flood-map inventory must declare a coordinate system.")
+
+    projected_geometry = shape(transform_geom("EPSG:4326", dataset.crs, geometry))
+    studies: list[FloodMapStudyObservation] = []
+    for feature in dataset.filter(bbox=projected_geometry.bounds):
+        if not feature["geometry"]:
+            continue
+        if not shape(feature["geometry"]).intersects(projected_geometry):
+            continue
+
+        properties = feature["properties"]
+        province = properties.get("province_or_territory")
+        study_name = properties.get("study_name")
+        if not isinstance(province, str) or not isinstance(study_name, str):
+            continue
+
+        studies.append(
+            FloodMapStudyObservation(
+                province_or_territory=province,
+                study_name=study_name,
+                study_date=properties.get("study_date"),
+                availability_status=properties.get("availability_status"),
+                study_status=properties.get("study_status"),
+                public_link=properties.get("public_link"),
+            )
+        )
+    return studies
 
 
 def _nullable_float(value: Any) -> float | None:
@@ -362,7 +484,7 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
             source_id="terrain",
             label="SRTM terrain",
             status="extracted",
-            detail=f"Sampled {sample_count} valid elevation pixels within the field boundary.",
+            detail=f"Sampled {sample_count} valid elevation pixels within the selected boundary.",
             source_objects=[object_name],
         )
     ]
@@ -390,7 +512,7 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
                     detail=(
                         f"Joined {len(soil_landscapes)} intersecting SLC polygons to "
                         f"{sum(len(landscape.components) for landscape in soil_landscapes)} soil components, "
-                        f"covering {min(soil_overlap_pct, 100):.1f}% of the field. "
+                        f"covering {min(soil_overlap_pct, 100):.1f}% of the selected area. "
                         "Includes soil names, drainage codes, and surface horizons at 1:1,000,000 scale."
                     ),
                     source_objects=SOIL_ANALYTIC_OBJECTS,
@@ -439,6 +561,141 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
             )
         )
 
+    landsat_observation: LandsatObservation | None = None
+    landsat_objects = [LANDSAT_MANIFEST_OBJECT]
+    try:
+        manifest_path = _cached_gcs_file(LANDSAT_MANIFEST_OBJECT, MAX_LANDSAT_MANIFEST_BYTES)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError("The Landsat manifest must be a JSON object.")
+
+        scene_id = manifest.get("sceneId")
+        acquired_at_value = manifest.get("acquiredAt")
+        assets = manifest.get("assets")
+        qa_mask_bits = manifest.get("qaMaskBits")
+        if not isinstance(scene_id, str) or not isinstance(acquired_at_value, str):
+            raise ValueError("The Landsat manifest is missing scene identity or acquisition time.")
+        if not isinstance(assets, dict) or not isinstance(qa_mask_bits, dict):
+            raise ValueError("The Landsat manifest is missing raster assets or QA mask bits.")
+
+        asset_names = [assets.get("red"), assets.get("nir08"), assets.get("qa_pixel")]
+        if any(
+            not isinstance(name, str)
+            or not name.startswith(LANDSAT_SCENE_PREFIX)
+            or "\\" in name
+            or any(part in {".", ".."} for part in name.split("/"))
+            for name in asset_names
+        ):
+            raise ValueError("The Landsat manifest contains an invalid raster object path.")
+        red_object, nir_object, qa_object = asset_names
+        landsat_objects.extend([red_object, nir_object, qa_object])
+
+        qa_mask_bits = {
+            name: bit
+            for name, bit in qa_mask_bits.items()
+            if isinstance(name, str) and isinstance(bit, int) and not isinstance(bit, bool)
+        }
+        scale = manifest.get("reflectanceScale")
+        offset = manifest.get("reflectanceOffset")
+        nodata = manifest.get("reflectanceNoData")
+        if (
+            not isinstance(scale, (int, float))
+            or isinstance(scale, bool)
+            or not isinstance(offset, (int, float))
+            or isinstance(offset, bool)
+            or not isinstance(nodata, int)
+            or isinstance(nodata, bool)
+        ):
+            raise ValueError("The Landsat manifest has invalid reflectance scale, offset, or NoData values.")
+
+        red_path = _cached_gcs_file(red_object, MAX_LANDSAT_TIFF_BYTES)
+        nir_path = _cached_gcs_file(nir_object, MAX_LANDSAT_TIFF_BYTES)
+        qa_path = _cached_gcs_file(qa_object, MAX_LANDSAT_TIFF_BYTES)
+        with rasterio.open(red_path) as red_dataset, rasterio.open(nir_path) as nir_dataset, rasterio.open(
+            qa_path
+        ) as qa_pixel_dataset:
+            mean_ndvi, clear_pixel_count = sample_landsat_ndvi_dataset(
+                red_dataset,
+                nir_dataset,
+                qa_pixel_dataset,
+                request.geometry,
+                float(scale),
+                float(offset),
+                nodata,
+                qa_mask_bits,
+            )
+
+        landsat_observation = LandsatObservation(
+            scene_id=scene_id,
+            acquired_at=datetime.fromisoformat(acquired_at_value.replace("Z", "+00:00")),
+            mean_ndvi=mean_ndvi,
+            clear_pixel_count=clear_pixel_count,
+        )
+        sources.append(
+            SourceExtraction(
+                source_id="landsat",
+                label="Landsat surface reflectance",
+                status="extracted",
+                detail=(
+                    f"Calculated cloud-masked NDVI from {clear_pixel_count} clear 30 m pixels "
+                    f"in the {scene_id} scene."
+                ),
+                source_objects=landsat_objects,
+            )
+        )
+    except Exception as error:
+        sources.append(
+            SourceExtraction(
+                source_id="landsat",
+                label="Landsat surface reflectance",
+                status="error",
+                detail=f"Landsat extraction failed: {error}",
+                source_objects=landsat_objects,
+            )
+        )
+
+    flood_map_studies: list[FloodMapStudyObservation] = []
+    try:
+        flood_blobs = list(get_bucket().list_blobs(prefix=FLOOD_MAP_GDB_PREFIX))
+        total_size = sum(blob.size or 0 for blob in flood_blobs)
+        if not flood_blobs:
+            raise ValueError("The flood-map inventory is missing from the GCS bucket.")
+        if total_size > MAX_FLOOD_GDB_TOTAL_BYTES:
+            raise ValueError("The flood-map inventory exceeds the allowed cache size.")
+
+        gdb_paths = [
+            _cached_gcs_file(blob.name, MAX_FLOOD_GDB_OBJECT_BYTES)
+            for blob in flood_blobs
+        ]
+        gdb_directory = gdb_paths[0].parent
+        with fiona.open(gdb_directory, layer="flood_map") as flood_dataset:
+            flood_map_studies = sample_flood_map_studies(flood_dataset, request.geometry)
+
+        study_count = len(flood_map_studies)
+        detail = (
+            f"Found {study_count} flood-map inventory study footprints intersecting the area. "
+            "The inventory is incomplete and is not a flood-hazard determination."
+        )
+        sources.append(
+            SourceExtraction(
+                source_id="flood_inventory",
+                label="Flood-map inventory",
+                status="extracted",
+                detail=detail,
+                source_objects=[FLOOD_MAP_GDB_PREFIX],
+            )
+        )
+    except Exception as error:
+        sources.append(
+            SourceExtraction(
+                source_id="flood_inventory",
+                label="Flood-map inventory",
+                status="error",
+                detail=f"Flood-map inventory extraction failed: {error}",
+                source_objects=[FLOOD_MAP_GDB_PREFIX],
+            )
+        )
+
     sources.extend(
         [
             SourceExtraction(
@@ -450,16 +707,6 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
                     "spatial index or request-time query is configured."
                 ),
                 source_objects=["raw/hydat_2026-10-19.sqlite3"],
-            ),
-            SourceExtraction(
-                source_id="climate",
-                label="Climate and reflectance",
-                status="unavailable",
-                detail=(
-                    "No valid Landsat reflectance source was found. The similarly named GCS prefix "
-                    "contains SRTM HGT archives, not Landsat imagery."
-                ),
-                source_objects=["raw/landsat-surface-reflectance-collection-2-level-2-ontario/"],
             ),
         ]
     )
@@ -475,5 +722,7 @@ def get_terrain_sample(request: FieldTerrainRequest) -> TerrainSample:
         soil_landscapes=soil_landscapes,
         crop_class_counts=crop_class_counts,
         crop_sample_count=crop_sample_count,
+        landsat_observation=landsat_observation,
+        flood_map_studies=flood_map_studies,
         sources=sources,
     )

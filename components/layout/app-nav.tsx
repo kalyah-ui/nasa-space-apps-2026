@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, House, MapPin, RefreshCw, Sprout } from "lucide-react";
+import { Compass, House, MapPin, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -10,7 +10,6 @@ const navigation = [
   { href: "/discovery", label: "Discovery", Icon: Compass },
   { href: "/field-info", label: "Field Info", Icon: MapPin },
   { href: "/rotation-planner", label: "Rotation Planner", Icon: RefreshCw },
-  { href: "/future-farm", label: "Future Farm", Icon: Sprout },
 ];
 
 type PillRect = { top: number; left: number; width: number; height: number };

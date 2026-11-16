@@ -9,14 +9,17 @@ from pydantic import ValidationError
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 from rasterio.warp import transform_bounds
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, mapping
 
 from backend.models.terrain import FieldTerrainRequest
 from backend.services.terrain import (
     build_srtm_object_name,
     get_terrain_sample,
     _nullable_int,
+    _cached_gcs_file,
     sample_crop_inventory_dataset,
+    sample_flood_map_studies,
+    sample_landsat_ndvi_dataset,
     sample_srtm_geotiff,
 )
 
@@ -110,6 +113,16 @@ class FakeBucket:
         return self._blob
 
 
+class FakeFloodMapLayer:
+    crs = "EPSG:4326"
+
+    def __init__(self, features) -> None:
+        self.features = features
+
+    def filter(self, bbox):
+        return iter(self.features)
+
+
 class TerrainTests(unittest.TestCase):
     def test_builds_correct_srtm_geotiff_tile_name_for_field(self) -> None:
         object_name = build_srtm_object_name({
@@ -124,6 +137,20 @@ class TerrainTests(unittest.TestCase):
             object_name,
             "raw/srtm-global-1-arc-second:v003:ontario/n45_w077_1arc_v3.tif",
         )
+
+    @patch("backend.services.terrain.get_bucket")
+    def test_gcs_cache_encodes_object_path_segments_for_windows(self, get_bucket_mock) -> None:
+        object_name = "raw/srtm-global-1-arc-second:v003:ontario/n45_w077_1arc_v3.tif"
+        bucket = FakeBucket(FakeBlob(b"sample geotiff"))
+        get_bucket_mock.return_value = bucket
+
+        with tempfile.TemporaryDirectory() as cache_dir:
+            with patch("backend.services.terrain.GCS_CACHE_DIR", Path(cache_dir)):
+                cached_path = _cached_gcs_file(object_name, 1024)
+                self.assertTrue(cached_path.is_file())
+                self.assertIn("srtm-global-1-arc-second%3Av003%3Aontario", str(cached_path))
+                self.assertEqual(cached_path.read_bytes(), b"sample geotiff")
+                self.assertEqual(bucket.requested_name, object_name)
 
     def test_samples_geotiff_cells_inside_field_and_derives_slope(self) -> None:
         mean_elevation, mean_slope, sample_count = sample_srtm_geotiff(make_geotiff(), FIELD_GEOMETRY)
@@ -145,6 +172,129 @@ class TerrainTests(unittest.TestCase):
         self.assertEqual({item.class_code for item in classes}, {122, 158, 220})
         self.assertAlmostEqual(sum(item.field_share_pct for item in classes), 100, delta=0.02)
 
+    def test_samples_landsat_ndvi_after_masking_cloud_and_nodata_pixels(self) -> None:
+        transform = from_origin(-77, 46, 1 / 3600, 1 / 3600)
+        geometry = {
+            "type": "Polygon",
+            "coordinates": [[
+                [-77, 46],
+                [-77 + 2 / 3600, 46],
+                [-77 + 2 / 3600, 46 - 2 / 3600],
+                [-77, 46 - 2 / 3600],
+                [-77, 46],
+            ]],
+        }
+        with (
+            MemoryFile() as red_memory,
+            MemoryFile() as nir_memory,
+            MemoryFile() as qa_memory,
+        ):
+            with (
+                red_memory.open(
+                    driver="GTiff",
+                    width=2,
+                    height=2,
+                    count=1,
+                    dtype="uint16",
+                    crs="EPSG:4326",
+                    transform=transform,
+                    nodata=0,
+                ) as red_dataset,
+                nir_memory.open(
+                    driver="GTiff",
+                    width=2,
+                    height=2,
+                    count=1,
+                    dtype="uint16",
+                    crs="EPSG:4326",
+                    transform=transform,
+                    nodata=0,
+                ) as nir_dataset,
+                qa_memory.open(
+                    driver="GTiff",
+                    width=2,
+                    height=2,
+                    count=1,
+                    dtype="uint16",
+                    crs="EPSG:4326",
+                    transform=transform,
+                    nodata=1,
+                ) as qa_dataset,
+            ):
+                red_dataset.write(np.array([[10000, 12000], [0, 10000]], dtype="uint16"), 1)
+                nir_dataset.write(np.array([[20000, 18000], [0, 15000]], dtype="uint16"), 1)
+                qa_dataset.write(np.array([[0, 1 << 3], [0, 0]], dtype="uint16"), 1)
+
+                mean_ndvi, clear_pixel_count = sample_landsat_ndvi_dataset(
+                    red_dataset,
+                    nir_dataset,
+                    qa_dataset,
+                    geometry,
+                    reflectance_scale=0.0000275,
+                    reflectance_offset=-0.2,
+                    reflectance_nodata=0,
+                    qa_mask_bits={"fill": 0, "cloud": 3},
+                )
+
+        self.assertEqual(clear_pixel_count, 2)
+        expected_ndvi = (
+            (0.35 - 0.075) / (0.35 + 0.075)
+            + (0.2125 - 0.075) / (0.2125 + 0.075)
+        ) / 2
+        self.assertAlmostEqual(mean_ndvi, expected_ndvi, delta=0.0001)
+
+    def test_extracts_only_flood_map_studies_intersecting_the_region(self) -> None:
+        region = Polygon([
+            (-76.3, 45.3),
+            (-76.2, 45.3),
+            (-76.2, 45.4),
+            (-76.3, 45.4),
+            (-76.3, 45.3),
+        ])
+        local_study = Polygon([
+            (-76.28, 45.32),
+            (-76.27, 45.32),
+            (-76.27, 45.33),
+            (-76.28, 45.33),
+            (-76.28, 45.32),
+        ])
+        remote_study = Polygon([
+            (-75.0, 44.0),
+            (-74.9, 44.0),
+            (-74.9, 44.1),
+            (-75.0, 44.1),
+            (-75.0, 44.0),
+        ])
+        features = [
+            {
+                "geometry": mapping(local_study),
+                "properties": {
+                    "province_or_territory": "Ontario",
+                    "study_name": "Mississippi River flood study",
+                    "study_date": "2019-09-01",
+                    "availability_status": "not publicly available",
+                    "study_status": "final",
+                    "public_link": None,
+                },
+            },
+            {
+                "geometry": mapping(remote_study),
+                "properties": {
+                    "province_or_territory": "Ontario",
+                    "study_name": "Remote flood study",
+                },
+            },
+        ]
+
+        studies = sample_flood_map_studies(
+            FakeFloodMapLayer(features),
+            mapping(region),
+        )
+
+        self.assertEqual(len(studies), 1)
+        self.assertEqual(studies[0].study_name, "Mississippi River flood study")
+        self.assertEqual(studies[0].availability_status, "not publicly available")
+
     @patch("backend.services.terrain.get_bucket")
     def test_gcs_sample_includes_object_name_and_update_time(self, get_bucket_mock) -> None:
         bucket = FakeBucket(FakeBlob(make_geotiff()))
@@ -160,7 +310,7 @@ class TerrainTests(unittest.TestCase):
         self.assertEqual(result.source_object, "raw/srtm-global-1-arc-second:v003:ontario/n45_w077_1arc_v3.tif")
         self.assertEqual(
             {source.source_id for source in result.sources},
-            {"terrain", "soil", "crop_inventory", "water", "climate"},
+            {"terrain", "soil", "crop_inventory", "landsat", "flood_inventory", "water"},
         )
 
     def test_rejects_invalid_or_unbounded_field_geometries(self) -> None:

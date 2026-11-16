@@ -7,16 +7,16 @@ NASA Space Apps Challenge Project
 
 # Vision
 
-loam helps farmers and future landowners answer:
+loam helps farmers and landowners answer:
 
-> Is this land suitable for my goals today, and will it still be suitable in 10 years?
+> Is this land suitable for my goals today?
 
 Using NASA Earth Observation data, agricultural datasets, and explainable recommendations, loam helps users:
 
 1. Evaluate farmland before purchase
 2. Understand current field conditions
 3. Compare crop rotation strategies
-4. Explore future risks and opportunities
+4. Understand local environmental risks
 
 ---
 
@@ -99,39 +99,6 @@ Datasets:
 
 ---
 
-## 4. Future Farm
-
-Predict future resilience.
-
-Outputs:
-
-- Current Farm Score
-- 10-Year Farm Score
-- 20-Year Farm Score
-
-Risk Factors:
-
-- Heat Stress
-- Water Availability
-- Soil Moisture Trends
-- Extreme Rainfall Events
-
-Recommended Adaptations:
-
-- Cover Crops
-- Alternative Rotations
-- Water Conservation Strategies
-
-Datasets:
-
-- POWER
-- SMAP
-- GPM
-- ECOSTRESS
-- PRISM
-
----
-
 # Team Structure
 
 ## Arabella
@@ -193,7 +160,6 @@ Owns:
 Responsibilities:
 
 - Farm Score calculations
-- Future Farm Score
 - Crop recommendations
 - Rotation scoring
 
@@ -290,8 +256,7 @@ loam/
 │   │   └── page.tsx
 │   ├── rotation-planner/
 │   │   └── page.tsx
-│   └── future-farm/
-│       └── page.tsx
+│   │   └── page.tsx
 │
 ├── components/
 │   ├── layout/
@@ -358,7 +323,6 @@ loam/
 
 ✅ Farm Score
 
-✅ Future Farm Score
 
 ✅ Interactive Map
 
@@ -392,15 +356,13 @@ loam/
 2. Show Real Community Problem
 3. Select Local Farm Parcel
 4. Farm Discovery Analysis
-5. Future Farm Score
 6. Rotation Recommendations
-7. Show Impact For Future Farmers
 8. Close With NASA Data Making Local Decisions Easier
 
 ---
 
 # Main Pitch
 
-loam combines NASA Earth observations with agricultural datasets to help current and future farmers evaluate land, plan resilient crop rotations, and understand how climate change may affect their farms over the next two decades.
+loam combines Earth observations with agricultural datasets to help farmers evaluate land and compare crop rotation strategies using explainable, current-condition data.
 
 Rather than replacing farmer expertise, loam supports better decisions through accessible, explainable environmental insights.
