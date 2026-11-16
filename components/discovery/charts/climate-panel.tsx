@@ -74,7 +74,7 @@ export function ClimatePanel({ history, normals, onRetryHistory, onRetryNormals 
             points: last90.map((day, index) => ({ label: labels90[index], value: day.rainMm })),
           },
         ]}
-        title="Rainfall — last 90 days"
+        title="Rainfall — Last 90 Days"
         unit="mm"
       />
 
@@ -89,7 +89,7 @@ export function ClimatePanel({ history, normals, onRetryHistory, onRetryNormals 
             points: last90.map((day, index) => ({ label: labels90[index], value: day.tMeanC })),
           },
         ]}
-        title="Temperature — last 90 days"
+        title="Temperature — Last 90 Days"
         unit="°C"
       />
 
@@ -125,7 +125,7 @@ export function ClimatePanel({ history, normals, onRetryHistory, onRetryNormals 
               }),
             },
           ]}
-          title={`Monthly rainfall — ${year} vs normal`}
+          title={`Monthly Rainfall — ${year} vs. Normal`}
           unit="mm"
         />
       ) : null}

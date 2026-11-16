@@ -12,14 +12,14 @@ export function WorkspaceHeader({ field }: WorkspaceHeaderProps) {
     <header className="field-workspace-header">
       <div className="field-workspace-brand">
         <Link className="field-workspace-brand-name" href="/">
-          loam
+          Loam
         </Link>
-        <span className="field-workspace-tagline">The dirt on your dirt.</span>
+        <span className="field-workspace-tagline">The Dirt on Your Dirt.</span>
       </div>
       <AppNav variant="compact" />
       <div className="field-workspace-field">
         <div>
-          <h1>{field?.name ?? "Select a field"}</h1>
+          <h1>{field?.name ?? "Select a Field"}</h1>
           <p>
             {field
               ? `${field.area.toFixed(2)} ${field.areaUnit}`

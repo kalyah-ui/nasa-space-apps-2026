@@ -28,7 +28,7 @@ import type { DemoListing } from "./listings/demo-listings";
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "climate", label: "Climate" },
-  { id: "soil-water", label: "Soil and water" },
+  { id: "soil-water", label: "Soil and Water" },
   { id: "forecast", label: "Forecast" },
 ] as const;
 

@@ -53,7 +53,7 @@ function FieldSnapshotInner({ latitude, longitude }: { latitude: number; longitu
     <section aria-labelledby="landing-snapshot-title" className="landing-section">
       <div className="landing-section-header">
         <h2 className="landing-section-title" id="landing-snapshot-title">
-          Ottawa Valley today
+          Ottawa Valley Today
         </h2>
         <p className="landing-section-note">
           Live regional conditions near the demo fields — not parcel measurements
@@ -152,7 +152,7 @@ function OttawaRegionalObservations() {
       <div aria-labelledby="landing-regional-title" className="landing-subsection">
         <div className="landing-section-header">
           <h3 className="landing-subsection-title" id="landing-regional-title">
-            Regional observations
+            Regional Observations
           </h3>
         </div>
         <p className="source-muted" role="status">
@@ -176,7 +176,7 @@ function OttawaRegionalObservations() {
     <div aria-labelledby="landing-regional-title" className="landing-subsection">
       <div className="landing-section-header">
         <h3 className="landing-subsection-title" id="landing-regional-title">
-          Regional observations
+          Regional Observations
         </h3>
         <p className="landing-section-note">
           SRTM terrain · Landsat 8 vegetation · CanSIS soil mapping, sampled over the Landsat scene footprint
