@@ -280,6 +280,10 @@ h1 {
 /* ---- Landing hero ------------------------------------------------------ */
 
 .landing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 48px);
   position: relative;
   overflow: hidden;
   margin-bottom: var(--loam-space-6);
@@ -321,6 +325,28 @@ h1 {
     repeating-linear-gradient(25deg, rgb(29 41 33 / 3.2%) 0 1px, transparent 1px 72px),
     repeating-linear-gradient(-65deg, rgb(29 41 33 / 2.6%) 0 1px, transparent 1px 104px),
     var(--loam-panel);
+}
+
+.landing-hero-content {
+  min-width: 0;
+}
+
+.landing-hero-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  transform: scale(1.5);
+}
+
+@media (max-width: 900px) {
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-hero-logo {
+    display: none;
+  }
 }
 
 .landing-hero-name {
