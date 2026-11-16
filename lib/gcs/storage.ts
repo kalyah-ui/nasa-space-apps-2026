@@ -1,6 +1,8 @@
 import "server-only";
 
 import { Storage, type StorageOptions } from "@google-cloud/storage";
+import { getVercelOidcToken } from "@vercel/oidc";
+import { createWorkloadIdentityClient } from "./workload-identity";
 
 type ServiceAccountCredentials = {
   client_email?: unknown;
@@ -40,13 +42,14 @@ let storageClient: Storage | null = null;
 
 export function getServerStorage(): Storage {
   if (!storageClient) {
-    const credentials = parseCredentials();
+    const authClient = createWorkloadIdentityClient(process.env, () => getVercelOidcToken());
+    const credentials = authClient ? undefined : parseCredentials();
     storageClient = new Storage({
       projectId:
         process.env.GOOGLE_CLOUD_PROJECT ??
         process.env.GCLOUD_PROJECT ??
         "nasa-spaceapps-2026",
-      ...(credentials ? { credentials } : {}),
+      ...(authClient ? { authClient } : credentials ? { credentials } : {}),
     });
   }
   return storageClient;
