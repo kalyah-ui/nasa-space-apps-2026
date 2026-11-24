@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { EstimateBadge } from "@/components/ui/estimate-badge";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { DataCenterSignal } from "./data-center-signal";
+import { NearbyWells } from "./nearby-wells";
 import { ClimatePanel } from "./charts/climate-panel";
 import { ForecastPanel } from "./charts/forecast-panel";
 import { SoilWaterPanel } from "./charts/soil-water-panel";
@@ -216,6 +217,7 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
             />
           </div>
 
+          <NearbyWells listing={listing} />
           <DataCenterSignal listing={listing} />
 
           {verdict ? (

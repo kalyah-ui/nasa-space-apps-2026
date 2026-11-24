@@ -419,6 +419,29 @@ Open Discovery and select a demo parcel; its Overview panel screens within
 10 km of the displayed latitude/longitude. The Python endpoint is retained as a legacy Gemini-grounded implementation for
 separate API clients; the website uses the Tavily-backed Next.js endpoint.
 
+### Nearby Well Records
+
+Discovery's Overview panel queries Ontario's public WWIS map service directly
+through `GET /api/wells?latitude=43.55&longitude=-81.4`. No API key, Tavily credits,
+Gemini request, Python backend or private bucket access is required. Ontario
+parcels show the reported record count within 1 km of the demo location, the
+nearest recorded point, and up to five records with depth, completion year,
+recorded status and use. Locations are approximate and these are historical
+records, including test holes and abandoned wells—not confirmed active supplies,
+water-quality measurements, water rights or wells owned by the parcel.
+
+Results are cached for seven days. The server retrieves the total count
+separately from up to 2,000 record details; if that detail response is truncated,
+the panel labels it as a sample and does not claim a nearest well. Missing values
+remain unknown. Government-service failures are shown as unavailable, not zero
+wells. For other provinces the panel links to Canada's Groundwater Information
+Network rather than implying Ontario coverage applies across Canada.
+
+Sources: [Ontario Well Records](https://data.ontario.ca/en/dataset/well-records),
+[official Ontario well-records map](https://www.ontario.ca/page/well-records),
+[public WWIS service](https://ws.lioservices.lrc.gov.on.ca/arcgis1071a/rest/services/MOE/Wells/MapServer/0),
+and [Groundwater Information Network](https://gin.geosciences.ca/service/api_ngwds:gin2/en/gin.html).
+
 ## Accessing Shared Earth-Observation Data
 
 After datasets have been uploaded, team members can browse or download them
