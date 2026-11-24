@@ -21,7 +21,7 @@ import type {
   StoredFieldCollection,
   StoredFieldFeature,
 } from "@/lib/fields/types";
-import { loadDemoFieldCatalog, SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
+import { loadDemoFieldCatalog, loadSavedFields, saveFieldForRotation, SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
 import { getAreaHectares, parseFieldGeometry } from "@/lib/fields/validation";
 import { fieldDataProvider } from "./data/provider-config";
 import type { FieldSpec, LayerId, MapOverlayData } from "./data/types";
@@ -222,7 +222,15 @@ function isFieldGeometry(value: unknown): value is FieldGeometry {
 }
 
 async function loadFields(signal?: AbortSignal): Promise<StoredFieldCollection> {
-  return fieldDataProvider.listFields(signal);
+  const collection = await fieldDataProvider.listFields(signal);
+  const savedNames = new Map(loadSavedFields().map((field) => [field.id, field.name]));
+  return {
+    ...collection,
+    features: collection.features.map((field) => {
+      const name = savedNames.get(field.id);
+      return name ? { ...field, properties: { ...field.properties, name } } : field;
+    }),
+  };
 }
 
 function toFieldSpec(field: StoredFieldFeature, isDemo = false): FieldSpec {
@@ -276,6 +284,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     features: [],
   });
   const [selectedField, setSelectedField] = useState<StoredFieldFeature | null>(null);
+  const [fieldToSave, setFieldToSave] = useState<StoredFieldFeature | null>(null);
+  const [fieldSaveName, setFieldSaveName] = useState("");
   const [draftField, setDraftField] = useState<DraftField | null>(null);
   const [draftName, setDraftName] = useState("");
   const [isEditingBoundary, setIsEditingBoundary] = useState(false);
@@ -315,6 +325,8 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     selectedFeatureIdRef.current = null;
     selectedFieldRef.current = null;
     setSelectedField(null);
+    window.sessionStorage.removeItem(SELECTED_FIELD_STORAGE_KEY);
+    window.localStorage.removeItem(SELECTED_FIELD_STORAGE_KEY);
     onSelectField(null);
   }
 
@@ -446,7 +458,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
             if (renderedSoil?.properties) {
               const properties = renderedSoil.properties as Record<string, unknown>;
               try {
-                setSelectedSoilRegion({
+                const region = {
                   ...properties,
                   limitingFactors:
                     typeof properties.limitingFactors === "string"
@@ -460,7 +472,10 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
                     typeof properties.bbox === "string"
                       ? JSON.parse(properties.bbox)
                       : properties.bbox,
-                } as SoilRegionProperties);
+                } as SoilRegionProperties;
+                setSelectedSoilRegion((current) =>
+                  current?.polyId === region.polyId ? null : region,
+                );
               } catch {
                 setSelectedSoilRegion(null);
               }
@@ -479,7 +494,16 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               (id !== undefined && String(candidate.id) === String(id)) ||
               (typeof name === "string" && candidate.properties.name === name),
           );
-          if (field) selectField(field);
+          if (field) {
+            if (selectedFeatureIdRef.current === field.id) {
+              clearSelection();
+              setSelectedSoilRegion(null);
+              setFieldToSave(null);
+              setFieldSaveName("");
+              return;
+            }
+            selectField(field);
+          }
         });
 
         map.on("style.load", () => {
@@ -1027,10 +1051,40 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
 
   async function renameSelectedField() {
     if (!selectedField) return;
-    const name = window.prompt("Field name", selectedField.properties.name)?.trim();
-    if (name && name !== selectedField.properties.name) {
-      await updateStoredField(selectedField.id, { name }, "Field renamed.");
-    }
+    const existing = loadSavedFields().find((saved) => saved.id === selectedField.id);
+    setFieldToSave(selectedField);
+    setFieldSaveName(existing?.name ?? selectedField.properties.name);
+  }
+
+  function saveSelectedFieldForRotation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = fieldSaveName.trim();
+    if (!fieldToSave || !name) return;
+    saveFieldForRotation({
+      id: fieldToSave.id,
+      name,
+      geometry: fieldToSave.geometry,
+    });
+    const renamedField = {
+      ...fieldToSave,
+      properties: { ...fieldToSave.properties, name },
+    };
+    updateFieldSource({
+      ...fieldsRef.current,
+      features: fieldsRef.current.features.map((field) =>
+        field.id === renamedField.id ? renamedField : field,
+      ),
+    });
+    selectField(renamedField, false);
+    setFieldToSave(null);
+    setFieldSaveName("");
+    setFieldToolError(null);
+    setFieldToolMessage(`${name} was saved for Field Info and Crop Rotation.`);
+  }
+
+  function cancelFieldSave() {
+    setFieldToSave(null);
+    setFieldSaveName("");
   }
 
   async function deleteSelectedField() {
@@ -1301,7 +1355,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
       />
 
       {!mapError && !isLoading ? (
-        <>
+        <div className="field-map-top-controls">
           <form
             aria-label="Search map by address"
             className="field-map-address-search"
@@ -1445,7 +1499,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               <p className="field-map-field-warning" role="alert">{fieldLoadError}</p>
             ) : null}
           </div>
-        </>
+        </div>
       ) : null}
 
       {isLoading ? (
@@ -1460,64 +1514,35 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
         </div>
       ) : null}
 
-      {!mapError && !isLoading ? (
-        <div aria-live="polite" className="field-map-selection">
-          <span>Selected field</span>
-          <strong>{selectedField?.properties.name ?? "None selected"}</strong>
-          <small>
-            {selectedField
-              ? `${selectedField.properties.areaHectares.toFixed(2)} ha · Field ID ${selectedField.id}`
-              : fields.features.length > 0
-                ? "Click inside a field boundary to inspect it."
-                : fieldLoadError
-                  ? "Field boundaries could not be loaded."
-                  : "Add or upload a field boundary to begin."}
-          </small>
-          {selectedField && !fieldLoadError ? (
-            <div className="field-map-selection-actions">
-              <button
-                disabled={isSavingField || isEditingBoundary}
-                onClick={renameSelectedField}
-                type="button"
-              >
-                Rename
-              </button>
-              {!isEditingBoundary ? (
-                <button
-                  disabled={isSavingField}
-                  onClick={beginBoundaryEdit}
-                  type="button"
-                >
-                  Edit boundary
-                </button>
-              ) : (
-                <>
-                  <button
-                    disabled={isSavingField}
-                    onClick={saveBoundaryEdit}
-                    type="button"
-                  >
-                    Save boundary
-                  </button>
-                  <button
-                    disabled={isSavingField}
-                    onClick={cancelBoundaryEdit}
-                    type="button"
-                  >
-                    Cancel edit
-                  </button>
-                </>
-              )}
-              <button
-                className="is-danger"
-                disabled={isSavingField}
-                onClick={deleteSelectedField}
-                type="button"
-              >
-                Delete
-              </button>
+
+      {fieldToSave ? (
+        <div className="field-map-save-dialog-backdrop">
+          <form
+            aria-labelledby="field-save-dialog-title"
+            aria-modal="true"
+            className="field-map-save-dialog"
+            onSubmit={saveSelectedFieldForRotation}
+            role="dialog"
+          >
+            <strong id="field-save-dialog-title">Save field as</strong>
+            <label htmlFor="field-save-name">Enter the name of the field</label>
+            <input
+              autoFocus
+              id="field-save-name"
+              maxLength={100}
+              onChange={(event) => setFieldSaveName(event.target.value)}
+              placeholder="Field name"
+              required
+              value={fieldSaveName}
+            />
+            <small>
+              This name will appear in Field Info and Crop Rotation for this browser session.
+            </small>
+            <div>
+              <button type="submit">Save field</button>
+              <button onClick={cancelFieldSave} type="button">Cancel</button>
             </div>
-          ) : null}
+          </form>
         </div>
       ) : null}
 
@@ -1562,6 +1587,68 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
           role={soilUploadStatus.kind === "error" ? "alert" : "status"}
         >
           {soilUploadStatus.message}
+        </div>
+      ) : null}
+
+      <div className="field-map-bottom-controls">
+      {!mapError && !isLoading ? (
+        <div aria-live="polite" className="field-map-selection">
+          <span>Selected field</span>
+          <strong>{selectedField?.properties.name ?? "None selected"}</strong>
+          <small>
+            {selectedField
+              ? `${selectedField.properties.areaHectares.toFixed(2)} ha · Field ID ${selectedField.id}`
+              : fields.features.length > 0
+                ? "Click inside a field boundary to inspect it."
+                : fieldLoadError
+                  ? "Stored field boundaries are unavailable. You can still search an address or upload a boundary."
+                  : "Add or upload a field boundary to begin."}
+          </small>
+          {selectedField ? (
+            <div className="field-map-selection-actions">
+              <button
+                disabled={isSavingField || isEditingBoundary}
+                onClick={renameSelectedField}
+                type="button"
+              >
+                Save as
+              </button>
+              {!isEditingBoundary ? (
+                <button
+                  disabled={isSavingField}
+                  onClick={beginBoundaryEdit}
+                  type="button"
+                >
+                  Edit boundary
+                </button>
+              ) : (
+                <>
+                  <button
+                    disabled={isSavingField}
+                    onClick={saveBoundaryEdit}
+                    type="button"
+                  >
+                    Save boundary
+                  </button>
+                  <button
+                    disabled={isSavingField}
+                    onClick={cancelBoundaryEdit}
+                    type="button"
+                  >
+                    Cancel edit
+                  </button>
+                </>
+              )}
+              <button
+                className="is-danger"
+                disabled={isSavingField}
+                onClick={deleteSelectedField}
+                type="button"
+              >
+                Delete
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -1716,7 +1803,9 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
                     .map((feature) => (
                       <button
                         key={feature.id}
-                        onClick={() => setSelectedSoilRegion(feature.properties)}
+                        onClick={() => setSelectedSoilRegion((current) =>
+                          current?.polyId === feature.properties.polyId ? null : feature.properties,
+                        )}
                         type="button"
                       >
                         {feature.properties.polyId}: {feature.properties.overlapPercent}% ·{" "}
@@ -1773,6 +1862,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
           ) : null}
         </div>
       ) : null}
+      </div>
     </section>
   );
 }

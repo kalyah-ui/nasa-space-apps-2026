@@ -9,6 +9,8 @@ export interface FieldOption {
 }
 
 export const FIELD_BOUNDARY_URLS = ["/data/PlotA.geojson", "/data/PlotB.geojson"] as const;
+const SAVED_FIELDS_STORAGE_KEY = "loam-saved-fields";
+
 export const SELECTED_FIELD_STORAGE_KEY = "loam-selected-field";
 
 type ApiFieldCollection = {
@@ -87,7 +89,64 @@ function normalizeGeometry(feature: RawFeature, sourceName: string): FieldGeomet
   throw new Error(`${sourceName} must contain LineString, Polygon, or MultiPolygon boundaries.`);
 }
 
+export function loadSavedFields(): FieldOption[] {
+  if (typeof window === "undefined") return [];
+  const stored = window.sessionStorage.getItem(SAVED_FIELDS_STORAGE_KEY);
+  if (!stored) return [];
+  try {
+    const value = JSON.parse(stored) as unknown;
+    if (!Array.isArray(value)) return [];
+    return value.flatMap((candidate, index) => {
+      if (!candidate || typeof candidate !== "object") return [];
+      const record = candidate as {
+        id?: unknown;
+        name?: unknown;
+        geometry?: RawFeature["geometry"];
+      };
+      if (typeof record.id !== "string" || typeof record.name !== "string" || !record.name.trim()) {
+        return [];
+      }
+      try {
+        return [{
+          id: record.id,
+          name: record.name.trim(),
+          geometry: normalizeGeometry(
+            { type: "Feature", geometry: record.geometry },
+            `saved field ${index + 1}`,
+          ),
+        }];
+      } catch {
+        return [];
+      }
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function saveFieldForRotation(field: FieldOption): FieldOption[] {
+  const savedFields = loadSavedFields();
+  const existingIndex = savedFields.findIndex((saved) => saved.id === field.id);
+  const nextFields = [...savedFields];
+  if (existingIndex >= 0) nextFields[existingIndex] = field;
+  else nextFields.push(field);
+  window.sessionStorage.setItem(SAVED_FIELDS_STORAGE_KEY, JSON.stringify(nextFields));
+  window.sessionStorage.setItem(SELECTED_FIELD_STORAGE_KEY, field.id);
+  return nextFields;
+}
+
 export async function loadFieldCatalog(signal?: AbortSignal): Promise<FieldOption[]> {
+  const fields = await loadBaseFieldCatalog(signal);
+  const saved = loadSavedFields();
+  const savedById = new Map(saved.map((field) => [field.id, field]));
+  const ids = new Set(fields.map((field) => field.id));
+  return [
+    ...fields.map((field) => savedById.get(field.id) ?? field),
+    ...saved.filter((field) => !ids.has(field.id)),
+  ];
+}
+
+async function loadBaseFieldCatalog(signal?: AbortSignal): Promise<FieldOption[]> {
   const apiResponse = await fetch("/api/fields", { cache: "no-store", signal });
   if (apiResponse.ok) {
     const collection = (await apiResponse.json()) as ApiFieldCollection;

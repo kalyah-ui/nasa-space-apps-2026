@@ -135,14 +135,19 @@ export function RotationPlanner() {
           <form className="rotation-location-form" onSubmit={handleFieldSubmit}>
             <label className="rotation-field-select">
               Your field
-              <select
-                disabled={fieldsLoading || fields.length === 0}
-                onChange={(event) => handleFieldChange(event.target.value)}
-                value={selectedFieldId}
-              >
-                {fieldsLoading && <option value="">Loading fields…</option>}
-                {fields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
-              </select>
+              <span className="rotation-field-select-control">
+                <select
+                  disabled={fieldsLoading || fields.length === 0}
+                  onChange={(event) => handleFieldChange(event.target.value)}
+                  value={selectedFieldId}
+                >
+                  {fieldsLoading && <option value="">Loading fields…</option>}
+                  {fields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
+                </select>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </label>
             <button disabled={fieldsLoading} type="submit">
               Next: Choose crops →
