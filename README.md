@@ -396,8 +396,10 @@ seven days, and shares concurrent requests between card mounts. Incomplete
 analysis is cached in the browser for five minutes to avoid rapid retry loops.
 Results display the original source search time. Summary overload/timeouts get
 one fallback attempt using `gemini-3.1-flash-lite` within the API's time budget
-(configurable with `GEMINI_SUMMARY_FALLBACK_MODEL`); quota and authentication errors are not
-automatically retried. The Retry analysis button clears only incomplete browser
+(configurable with `GEMINI_SUMMARY_FALLBACK_MODEL`). An explicit daily-request
+quota exhaustion naming the primary model also tries that distinct alternative
+once. Unspecified/shared quota failures and authentication errors are not retried.
+Server diagnostics include the models actually attempted. The Retry analysis button clears only incomplete browser
 analysis, preserving the server's cached Tavily sources. After expiry, Next.js
 may serve the previous result while refreshing in the background. Cache storage
 and cross-instance persistence on self-hosted deployments depend on the host's

@@ -195,12 +195,34 @@ test("persistent overload stops after two attempts and retains the unavailable-a
 });
 
 
-test("quota rejection does not trigger a fallback model request", async () => {
+test("unspecified quota rejection does not trigger a fallback model request", async () => {
   let calls = 0;
   const result = await summarizeDataCenterEvidence(location, evidence, "gemini", "test", async () => {
     calls++;
     return Response.json({ error: { message: "Quota exceeded" } }, { status: 429 });
   });
+  assert.equal(calls, 1);
+  assert.equal(result.summary_status, "unavailable");
+});
+
+
+test("explicit primary-model daily exhaustion tries the configured alternative once", async () => {
+  const models: string[] = [];
+  const result = await summarizeDataCenterEvidence(location, evidence, "gemini", "gemini-3.8-flash", async (endpoint) => {
+    models.push(String(endpoint));
+    return models.length === 1 ? Response.json({ error: { message: "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash, description: Generate content requests per day limit exceeded on Free Tier." } }, { status: 429 }) : summaryResponse();
+  });
+  assert.equal(models.length, 2);
+  assert.match(models[1], /gemini-3\.1-flash-lite:generateContent/);
+  assert.equal(result.assessment_status, "reported");
+});
+
+test("does not retry daily exhaustion when the alternative is the same model", async () => {
+  let calls = 0;
+  const result = await summarizeDataCenterEvidence(location, evidence, "gemini", "test", async () => {
+    calls++;
+    return Response.json({ error: { message: "generate_content_free_tier_requests, model: test, requests per day limit exceeded" } }, { status: 429 });
+  }, "test");
   assert.equal(calls, 1);
   assert.equal(result.summary_status, "unavailable");
 });
