@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EstimateBadge } from "@/components/ui/estimate-badge";
 import { ListingCard } from "./listing-card";
 import { ListingDetail } from "./listing-detail";
@@ -16,6 +16,7 @@ function shortPrice(priceCad: number): string {
 
 export function DiscoveryBrowser() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const detailAreaRef = useRef<HTMLDivElement>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const toggleSelected = (listingId: string) => {
@@ -23,6 +24,21 @@ export function DiscoveryBrowser() {
   };
 
   const selectedListing = demoListings.find((listing) => listing.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!selectedId || !detailAreaRef.current) return;
+    const area = detailAreaRef.current;
+    const panel = area.querySelector<HTMLElement>(".listing-detail");
+    panel?.scrollTo({ top: 0, behavior: "instant" });
+    const bounds = area.getBoundingClientRect();
+    if (bounds.top < 0 || bounds.bottom > window.innerHeight || bounds.top > window.innerHeight / 3) {
+      area.scrollIntoView({
+        block: "start",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      });
+    }
+    panel?.focus({ preventScroll: true });
+  }, [selectedId]);
 
   const markers = useMemo<MapMarker[]>(
     () =>
@@ -56,7 +72,7 @@ export function DiscoveryBrowser() {
         ))}
       </div>
 
-      <div className="discovery-map-area">
+      <div className="discovery-map-area" ref={detailAreaRef}>
         <DiscoveryMap
           highlightedMarkerId={highlightedId}
           markers={markers}
@@ -66,6 +82,7 @@ export function DiscoveryBrowser() {
         />
         {selectedListing ? (
           <ListingDetail
+            key={selectedListing.id}
             listing={selectedListing}
             onClose={() => setSelectedId(null)}
           />

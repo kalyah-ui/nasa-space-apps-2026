@@ -77,7 +77,7 @@ npm run dev
 
 Open http://localhost:3000. Start the FastAPI backend in a separate terminal
 for regional terrain observations and crop classification. Discovery's nearby
-data-center search runs in Next.js and uses a server-only Gemini key. Private map layers additionally require Google authentication as
+data-center search runs in Next.js, using Tavily for search and ordinary Gemini requests for source summaries. Private map layers additionally require Google authentication as
 explained below. Use `NEXT_PUBLIC_DATA_PROVIDER=mock` only for the mock field-layer
 provider; it does not replace every backend dependency.
 
@@ -346,7 +346,7 @@ variable for either API key. `GEMINI_MODEL` optionally selects the model and
 defaults to `gemini-2.5-flash`. Without a key, or if the Gemini request fails,
 the API uses its local crop reference and leaves unknown crops available for
 manual family selection. `GEMINI_SEARCH_MODEL` independently selects the
-nearby data-center search model (Next.js defaults to `gemini-3.8-flash`).
+nearby data-center source-summary model (Next.js defaults to `gemini-3.8-flash`).
 These water-demand categories are broad crop
 references, not field irrigation-volume predictions.
 
@@ -358,37 +358,66 @@ export GEMINI_MODEL="gemini-2.5-flash"
 uvicorn backend.main:app --reload
 ```
 
-Discovery's nearby data-center assessment uses the same server-side key with
-Gemini Google Search grounding. It searches a default 25 km radius (configurable
-per request), cites grounded URLs, reports operational and development status
-separately, and computes verified distances from returned coordinates. Its
-exposure score remains `null` unless all six weighted factors have cited
-evidence and at least one relevant facility or concern was identified. An empty
-search result is not proof of absence. Search-grounding usage may incur Gemini
-API charges. Current Discovery parcels are fictional demos, so their results
-describe sample-coordinate areas, not actual properties. The browser calls
+Discovery's nearby data-center assessment uses **Tavily Search** for live web
+results and an optional normal Gemini `generateContent` request to summarize only those
+source excerpts. It does not enable Gemini's Google Search grounding tool.
+Each uncached assessment makes one basic Tavily search (automatic parameter
+upgrades are disabled) and, when sources exist and a Gemini key is configured, one Gemini summary request.
+If Gemini is unavailable or not configured, the panel reports that nearby
+facilities could not be verified; unverified provincial sources are not presented
+as local findings.
+Both providers retain their own usage limits; adding Tavily does not remove
+normal Gemini model quotas.
+
+The requested radius defaults to 10 km, a screening boundary rather than an
+impact cutoff. Water and grid effects can follow shared infrastructure beyond it. Tavily search is textual, not a spatial
+index: it can return irrelevant or incomplete coverage, particularly when the
+input contains coordinates rather than a named locality. Only facilities with a name and coordinate pair supported by the same cited
+excerpt and a computed distance inside the radius are included. Unknown locations,
+known out-of-radius facilities, cancelled projects, and province-wide policy
+summaries are excluded. A project consideration must name a retained facility
+and include a verbatim supporting excerpt from its source.
+Sources are restricted to the URLs actually returned by Tavily. Search excerpts
+are treated as untrusted evidence, not instructions. Exposure scores remain
+`null`: these excerpts do not establish a quantitative risk score. No search
+results is not proof that no nearby facilities or proposals exist.
+
+Current Discovery parcels are fictional demos. The browser calls
 `POST /api/infrastructure/data-centers/nearby` on the same Next.js origin;
-FastAPI is not required for this Discovery feature. The assigned coordinates
-and listing province are sent to Gemini with Google Search grounding to locate
-operating facilities, construction, planning applications, approvals and proposals.
-The server accepts cited findings, calculates distances, excludes known
-out-of-radius facilities, and labels missing coordinates as unverified.
-Successful results are cached for 15 minutes per warm server instance; concurrent
-requests for the same location share one search. Failures show an error and a
+FastAPI is not required for this Discovery feature.
+Tavily source results are cached for seven days in Next.js's persistent Data
+Cache, shared across Vercel instances. Completed analyses (including verified
+searches with no results) have a separate seven-day cache; unavailable analysis
+is not persisted as a completed report. Retrying analysis reuses cached sources
+without repeating the Tavily search. Keys include location, radius, model, summary availability and
+deployment environment, but no API keys. Warm-instance requests also share
+in-flight work. The browser reuses reports in memory and session storage for
+seven days, and shares concurrent requests between card mounts. Incomplete
+analysis is cached in the browser for five minutes to avoid rapid retry loops.
+Results display the original source search time. Summary overload/timeouts get
+one fallback attempt using `gemini-3.1-flash-lite` within the API's time budget
+(configurable with `GEMINI_SUMMARY_FALLBACK_MODEL`); quota and authentication errors are not
+automatically retried. The Retry analysis button clears only incomplete browser
+analysis, preserving the server's cached Tavily sources. After expiry, Next.js
+may serve the previous result while refreshing in the background. Cache storage
+and cross-instance persistence on self-hosted deployments depend on the host's
+Next.js cache configuration. Failures show an error and a
 retry control instead of claiming no nearby facilities exist.
 
 To enable Discovery web research:
 
 ```dotenv
-# Root .env.local locally; server-only Production variables on Vercel.
+# Root .env.local locally; server-only Preview and Production variables on Vercel.
+TAVILY_API_KEY=your_tavily_api_key
+# Optional: organize results into a structured facility report.
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_SEARCH_MODEL=gemini-3.8-flash
 ```
 
 Restart the local Next.js server, or redeploy Vercel after saving those variables.
-Open Discovery and select a demo parcel; its Overview panel searches within
-25 km of the displayed latitude/longitude. The Python endpoint is retained for
-separate API clients, but the website uses the Next.js endpoint.
+Open Discovery and select a demo parcel; its Overview panel screens within
+10 km of the displayed latitude/longitude. The Python endpoint is retained as a legacy Gemini-grounded implementation for
+separate API clients; the website uses the Tavily-backed Next.js endpoint.
 
 ## Accessing Shared Earth-Observation Data
 

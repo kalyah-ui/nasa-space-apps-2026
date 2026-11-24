@@ -13,7 +13,6 @@ import {
   averageTemperature,
   daysToNextFrost,
   drynessIndex,
-  drynessLabel,
   estimateFormulas,
   rainfallTotal,
 } from "@/lib/weather/derived";
@@ -43,26 +42,30 @@ function buildVerdict(args: {
 }): string {
   const sentences: string[] = [];
 
-  if (args.dryness !== null && args.rain30 !== null) {
-    sentences.push(
-      `${drynessLabel(args.dryness)} lately — ${formatNumber(args.rain30)} mm of rain in the last 30 days.`,
-    );
+  if (args.rain30 !== null) {
+    const rainfall = `${formatNumber(args.rain30)} mm over the last 30 days`;
+    if (args.dryness === null) {
+      sentences.push(`Recorded rainfall: ${rainfall}.`);
+    } else {
+      const comparison = args.dryness < 0.4 ? "well below normal"
+        : args.dryness < 0.75 ? "below normal"
+          : args.dryness <= 1.3 ? "near normal"
+            : args.dryness <= 2 ? "above normal" : "well above normal";
+      sentences.push(`Rainfall is ${comparison}: ${rainfall}.`);
+    }
   }
 
   if (args.frostIn !== undefined) {
     if (args.frostIn === null) {
-      sentences.push("No frost in the next week's forecast.");
-    } else if (args.frostIn <= 2) {
-      sentences.push(
-        `Frost knocking ${args.frostIn === 0 ? "today" : `in ${args.frostIn} day${args.frostIn === 1 ? "" : "s"}`} — mind anything tender.`,
-      );
+      sentences.push("No frost-risk temperatures in the seven-day forecast.");
     } else {
-      sentences.push(`First frost risk in about ${args.frostIn} days.`);
+      const timing = args.frostIn === 0 ? "today" : args.frostIn === 1 ? "tomorrow" : `in ${args.frostIn} days`;
+      sentences.push(`Frost risk ${timing}: forecast lows may reach 2°C or below.`);
     }
   }
 
   if (args.soilMoisture !== null && args.soilMoisture < 0.15) {
-    sentences.push("Topsoil's running thirsty.");
+    sentences.push(`Shallow soil moisture is low (${formatNumber(args.soilMoisture * 100)}% by volume).`);
   }
 
   return sentences.join(" ");
@@ -129,7 +132,7 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
     .pop();
 
   return (
-    <section aria-label={`${listing.name} details`} className="listing-detail">
+    <section aria-label={`${listing.name} details`} className="listing-detail" tabIndex={-1}>
       <header className="listing-detail-header">
         <div>
           <h2 className="listing-detail-name">
