@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EstimateBadge } from "@/components/ui/estimate-badge";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { DataCenterSignal } from "./data-center-signal";
 import { ClimatePanel } from "./charts/climate-panel";
 import { ForecastPanel } from "./charts/forecast-panel";
 import { SoilWaterPanel } from "./charts/soil-water-panel";
@@ -211,6 +212,8 @@ export function ListingDetail({ listing, onClose }: ListingDetailProps) {
               value={frostIn === undefined ? null : frostIn === null ? "7+" : `${frostIn}`}
             />
           </div>
+
+          <DataCenterSignal listing={listing} />
 
           {verdict ? (
             <blockquote className="listing-verdict">

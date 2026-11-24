@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routes.data import router as data_router
 from backend.routes.crops import router as crops_router
+from backend.routes.data_centers import router as data_centers_router
 from backend.routes.terrain import router as terrain_router
 
 app = FastAPI(
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(data_router, prefix="/api/data", tags=["data"])
 app.include_router(terrain_router, prefix="/api/data", tags=["data"])
 app.include_router(crops_router, prefix="/api/crops", tags=["crops"])
+app.include_router(data_centers_router, prefix="/api/infrastructure/data-centers", tags=["infrastructure"])
 
 
 @app.get("/health", tags=["health"])

@@ -116,6 +116,10 @@ export async function loadFieldCatalog(signal?: AbortSignal): Promise<FieldOptio
     }
   }
 
+  return loadDemoFieldCatalog(signal);
+}
+
+export async function loadDemoFieldCatalog(signal?: AbortSignal): Promise<FieldOption[]> {
   const collections = await Promise.all(
     FIELD_BOUNDARY_URLS.map(async (url) => {
       const response = await fetch(url, { signal });

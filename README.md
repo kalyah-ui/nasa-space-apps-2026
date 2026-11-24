@@ -1,7 +1,23 @@
 # Loam
+
 ### The Dirt on Your Dirt.
 
 loam helps farmers and future landowners evaluate land, understand field conditions, compare crop rotations, and explore long-term resilience using Earth observation and agricultural data.
+
+## Current workflows
+
+- **Overview** shows live Ottawa Valley weather and regional GCS observations
+  sampled over the Landsat scene footprint.
+- **Discovery** compares demo parcels with weather, soil/water and climate
+  panels, plus an on-demand nearby data-center assessment with cited sources.
+- **Field Info** supports saved field boundaries, drawing/import tools,
+  elevation, Landsat true colour/NDVI, regional soil suitability and soil CSV uploads.
+- **Rotation Planner** combines field observations with editable crop sequences,
+  crop-family and water-demand references, and scenario comparisons.
+
+The interface supports light and dark themes, remembers the selected theme
+locally, and uses `app/icon.png` as the circular browser tab logo. The original
+logo is in `assets/images/loam-logo.png`.
 
 ## Repository Layout
 
@@ -22,12 +38,48 @@ See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the feature and team owners
 
 Requires Node.js 20.9 or later.
 
+Copy the example configuration into the project root, then configure your
+Mapbox public token and backend URL:
+
+```bash
+cp .env.example .env.local
+```
+
+```dotenv
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_public_token
+NEXT_PUBLIC_DATA_PROVIDER=api
+NEXT_PUBLIC_DATA_API_URL=http://localhost:8000
+```
+
+Use `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` for both maps. Discovery and Field Info
+also accept `NEXT_PUBLIC_MAPBOX_TOKEN` as a legacy alias.
+
+The token is included in browser JavaScript, so use a public token with
+appropriate URL restrictions, not a secret Mapbox token. Next.js embeds this
+value when the frontend is built. GitHub repository secrets are available only
+to GitHub Actions when explicitly passed to a job or step; they are not
+automatically available to local development or other hosting providers. For a
+GitHub Actions build, pass the repository secret to the build step:
+
+```yaml
+- run: npm run build
+    env:
+        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+```
+
+For builds outside GitHub Actions, configure the same variable in the hosting
+provider's build environment and redeploy after changing it.
+
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. Start the FastAPI backend in a separate terminal
+for regional terrain observations and crop classification. Discovery's nearby
+data-center search runs in Next.js and uses a server-only Gemini key. Private map layers additionally require Google authentication as
+explained below. Use `NEXT_PUBLIC_DATA_PROVIDER=mock` only for the mock field-layer
+provider; it does not replace every backend dependency.
 
 #### Private SRTM Elevation Overlay
 
@@ -128,8 +180,12 @@ with `ONTARIO_FIELDS_CENTER_LON`, `ONTARIO_FIELDS_CENTER_LAT`, and
 `ONTARIO_FIELDS_WINDOW_KM`. The source GeoPackage and generated runtime GeoJSON
 are ignored by Git because of their size and local mutability. The publish step
 validates the generated collection and uploads it privately using Application
-Default Credentials. A missing GCS field object is reported as an error; the
-deployed app does not silently replace it with demo Plot A/Plot B boundaries.
+Default Credentials. A missing GCS field object is reported as an API error.
+The current Field Info implementation falls back to read-only boundaries from
+`public/data/PlotA.geojson` and `PlotB.geojson` when saved fields cannot be loaded,
+with a warning that saved fields are unavailable. The shared catalog loader
+also falls back to those demo files for failed or empty saved-field responses.
+Demo boundaries do not confirm that private GCS access is working.
 
 To test locally:
 
@@ -213,9 +269,11 @@ configuration and set the values there; do not commit a populated `.env` file.
 
 For Google Cloud Run, attach a service account to the Next.js service and grant
 it the minimum required bucket permissions. Application Default Credentials are
-then automatic. For Vercel or another non-Google host, add either
-`GCP_SERVICE_ACCOUNT_JSON` or `GCP_SERVICE_ACCOUNT_JSON_BASE64` as a protected
-server-only secret. Never name either variable with `NEXT_PUBLIC_`.
+then automatic. For Vercel, use the [keyless Google Cloud setup](docs/vercel-google-cloud.md)
+with OIDC and Workload Identity Federation. This keeps service account key
+creation disabled. Other hosts can use `GCP_SERVICE_ACCOUNT_JSON` or
+`GCP_SERVICE_ACCOUNT_JSON_BASE64` as a protected server-only secret.
+Never name authentication variables with `NEXT_PUBLIC_`.
 
 The runtime identity needs:
 
@@ -240,7 +298,7 @@ docker build -f Dockerfile.frontend \
   --build-arg NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN="$NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN" \
   -t loam-frontend .
 docker run --rm -p 8080:8080 \
-  -e GOOGLE_CLOUD_PROJECT=nasa-spaceapps-2026 \
+  -e GOOGLE_CLOUD_PROJECT="$GOOGLE_CLOUD_PROJECT" \
   -e GCS_BUCKET_NAME=nasa_spaceapps_2026_loam \
   -e GCP_SERVICE_ACCOUNT_JSON_BASE64="$GCP_SERVICE_ACCOUNT_JSON_BASE64" \
   loam-frontend
@@ -248,8 +306,24 @@ docker run --rm -p 8080:8080 \
 
 On Cloud Run, omit the service-account JSON variable and attach the authorized
 service account to the service instead. On Vercel, configure the Mapbox token as
-a build/public environment variable and the GCP credential as a protected
-server-only environment variable.
+a build/public environment variable and configure the four server-side
+federation variables documented in the keyless setup guide. Deploy the
+updated code and environment settings together. IAM-only changes do not
+require a new build, but may take time to propagate.
+
+The Next.js OIDC configuration does not authenticate the separate FastAPI
+service. Deploy FastAPI with its own authorized runtime identity (for example,
+a Cloud Run service account), set `NEXT_PUBLIC_DATA_API_URL` to its HTTPS origin
+in Vercel before building, and include `https://www.myloam.earth` plus any other
+frontend origins you use in the backend's `FRONTEND_ORIGINS` setting. Without a
+configured API URL, browser requests default to `http://localhost:8000`.
+
+If `/api/fields` fails, inspect Vercel function logs for `Could not load fields`.
+An `iam.serviceAccounts.getAccessToken` denial concerns the service account's
+**Workload Identity User** binding for the Vercel principal. A storage read
+permission denial concerns bucket permissions; a missing-object error requires
+publishing the field catalog. The website and bucket do not need to share the
+same public visibility.
 
 ### Backend
 
@@ -265,11 +339,15 @@ uvicorn backend.main:app --reload
 The API health check is available at http://localhost:8000/health.
 Crop classification can optionally use Gemini to suggest a botanical family and
 relative crop-water-demand category. Configure `GEMINI_API_KEY` in the backend
-process environment only; never put it in `app/.env.local` or a
-`NEXT_PUBLIC_` variable. `GEMINI_MODEL` optionally selects the model and
+process environment for crop classification. Discovery web research separately
+uses `GEMINI_API_KEY` on the Next.js server (root `.env.local` locally, Vercel
+Production environment variables when deployed). Never use a `NEXT_PUBLIC_`
+variable for either API key. `GEMINI_MODEL` optionally selects the model and
 defaults to `gemini-2.5-flash`. Without a key, or if the Gemini request fails,
 the API uses its local crop reference and leaves unknown crops available for
-manual family selection. These water-demand categories are broad crop
+manual family selection. `GEMINI_SEARCH_MODEL` independently selects the
+nearby data-center search model (Next.js defaults to `gemini-3.8-flash`).
+These water-demand categories are broad crop
 references, not field irrigation-volume predictions.
 
 For local development, export the key in the shell before starting FastAPI:
@@ -279,6 +357,38 @@ export GEMINI_API_KEY="your-key"
 export GEMINI_MODEL="gemini-2.5-flash"
 uvicorn backend.main:app --reload
 ```
+
+Discovery's nearby data-center assessment uses the same server-side key with
+Gemini Google Search grounding. It searches a default 25 km radius (configurable
+per request), cites grounded URLs, reports operational and development status
+separately, and computes verified distances from returned coordinates. Its
+exposure score remains `null` unless all six weighted factors have cited
+evidence and at least one relevant facility or concern was identified. An empty
+search result is not proof of absence. Search-grounding usage may incur Gemini
+API charges. Current Discovery parcels are fictional demos, so their results
+describe sample-coordinate areas, not actual properties. The browser calls
+`POST /api/infrastructure/data-centers/nearby` on the same Next.js origin;
+FastAPI is not required for this Discovery feature. The assigned coordinates
+and listing province are sent to Gemini with Google Search grounding to locate
+operating facilities, construction, planning applications, approvals and proposals.
+The server accepts cited findings, calculates distances, excludes known
+out-of-radius facilities, and labels missing coordinates as unverified.
+Successful results are cached for 15 minutes per warm server instance; concurrent
+requests for the same location share one search. Failures show an error and a
+retry control instead of claiming no nearby facilities exist.
+
+To enable Discovery web research:
+
+```dotenv
+# Root .env.local locally; server-only Production variables on Vercel.
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_SEARCH_MODEL=gemini-3.8-flash
+```
+
+Restart the local Next.js server, or redeploy Vercel after saving those variables.
+Open Discovery and select a demo parcel; its Overview panel searches within
+25 km of the displayed latitude/longitude. The Python endpoint is retained for
+separate API clients, but the website uses the Next.js endpoint.
 
 ## Accessing Shared Earth-Observation Data
 
@@ -382,10 +492,18 @@ comma-separated allowlist and `FRONTEND_ORIGINS` as a comma-separated CORS
 allowlist. Set `NEXT_PUBLIC_DATA_API_URL` to the backend origin when the
 frontend and API are not both running on localhost.
 
-The object API exposes stored files but does not yet decode raw NetCDF, raster,
-or STAC assets into field-layer samples. Keep `NEXT_PUBLIC_DATA_PROVIDER=mock`
-until a dataset-specific adapter and its spatial/temporal semantics are
-validated.
+The object API lists/streams stored files. Dedicated Next.js routes provide
+field boundaries, elevation, Landsat and soil-region overlays; FastAPI's
+`POST /api/data/terrain` returns regional observations used by Overview and
+Rotation Planner. Use `NEXT_PUBLIC_DATA_PROVIDER=api` for these live map layers.
+The terrain client normalizes omitted optional crop-class and flood-study lists
+from older backend responses so they do not crash Overview. Missing observations
+are not evidence that no crops or flood studies exist.
+
+Dataset inventory helpers in `lib/datasets/scoring-data.ts` identify the
+available crop, soil, elevation and HYDAT sources and their intended scoring
+dimensions; an inventory entry alone does not mean those measurements have
+been extracted or incorporated into a score.
 
 ### STAC Catalogs and File Naming
 

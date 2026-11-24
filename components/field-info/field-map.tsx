@@ -21,7 +21,8 @@ import type {
   StoredFieldCollection,
   StoredFieldFeature,
 } from "@/lib/fields/types";
-import { SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
+import { loadDemoFieldCatalog, SELECTED_FIELD_STORAGE_KEY } from "@/lib/fields/field-catalog";
+import { getAreaHectares, parseFieldGeometry } from "@/lib/fields/validation";
 import { fieldDataProvider } from "./data/provider-config";
 import type { FieldSpec, LayerId, MapOverlayData } from "./data/types";
 import type { SoilCropId, SoilRegionCollection } from "./data/types";
@@ -224,14 +225,14 @@ async function loadFields(signal?: AbortSignal): Promise<StoredFieldCollection> 
   return fieldDataProvider.listFields(signal);
 }
 
-function toFieldSpec(field: StoredFieldFeature): FieldSpec {
+function toFieldSpec(field: StoredFieldFeature, isDemo = false): FieldSpec {
   return {
     id: field.id,
     name: field.properties.name,
     area: field.properties.areaHectares,
     areaUnit: "ha",
     boundary: field.geometry,
-    provenance: { kind: "live", label: "AAFC field boundary" },
+    provenance: isDemo ? { kind: "demo", label: "Demo field boundary" } : { kind: "live", label: "AAFC field boundary" },
     healthScore: {
       value: 0,
       label: "Not calculated",
@@ -251,6 +252,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     type: "FeatureCollection",
     features: [],
   });
+  const demoFieldsRef = useRef(false);
   const selectedFieldRef = useRef<StoredFieldFeature | null>(null);
   const selectedFeatureIdRef = useRef<string | null>(null);
   const fieldOutlinesVisibleRef = useRef(true);
@@ -291,6 +293,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   });
   const [soilViewportRevision, setSoilViewportRevision] = useState(0);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [fieldLoadError, setFieldLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMapReady, setIsMapReady] = useState(false);
 
@@ -328,7 +331,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     selectedFieldRef.current = field;
     setSelectedField(field);
     window.localStorage.setItem(SELECTED_FIELD_STORAGE_KEY, field.id);
-    onSelectField(toFieldSpec(field));
+    onSelectField(toFieldSpec(field, demoFieldsRef.current));
     map.setFeatureState(
       { source: fieldSourceId, id: field.id },
       { selected: true },
@@ -357,7 +360,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
   }
 
   useEffect(() => {
-    const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     const abortController = new AbortController();
     let active = true;
     let map: mapboxgl.Map | null = null;
@@ -366,14 +369,31 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
     async function initializeMap() {
       if (!accessToken) {
         setMapError(
-          "Mapbox is not configured. Add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to .env.local and restart the app.",
+          "Mapbox is not configured. Set NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN and restart the app.",
         );
         setIsLoading(false);
         return;
       }
 
       try {
-        const collection = await loadFields(abortController.signal);
+        let collection: StoredFieldCollection;
+        try {
+          collection = await loadFields(abortController.signal);
+          demoFieldsRef.current = false;
+          if (active) setFieldLoadError(null);
+        } catch {
+          if (abortController.signal.aborted) return;
+          const demoFields = await loadDemoFieldCatalog(abortController.signal);
+          collection = {
+            type: "FeatureCollection",
+            features: demoFields.map((field) => {
+              const geometry = parseFieldGeometry(field.geometry);
+              return { type: "Feature", id: field.id, properties: { name: field.name, areaHectares: getAreaHectares(geometry) }, geometry };
+            }),
+          };
+          demoFieldsRef.current = true;
+          if (active) setFieldLoadError("Saved fields are unavailable. Showing read-only demo boundaries.");
+        }
         if (!active || !mapContainerRef.current) return;
         fieldsRef.current = collection;
         setFields(collection);
@@ -1203,7 +1223,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
 
   async function handleAddressSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     const map = mapRef.current;
     const query = addressQuery.trim();
     if (!query || !map || !token) return;
@@ -1380,14 +1400,14 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               </span>
             </button>
             <button
-              disabled={isSavingField || Boolean(draftField) || isEditingBoundary}
+              disabled={Boolean(fieldLoadError) || isSavingField || Boolean(draftField) || isEditingBoundary}
               onClick={beginAddField}
               type="button"
             >
               Add field
             </button>
             <button
-              disabled={isSavingField}
+              disabled={Boolean(fieldLoadError) || isSavingField}
               onClick={() => importInputRef.current?.click()}
               type="button"
             >
@@ -1396,6 +1416,7 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
             <input
               accept=".geojson,.json,.kml,application/geo+json,application/json,application/vnd.google-earth.kml+xml"
               className="field-workspace-visually-hidden"
+              disabled={Boolean(fieldLoadError) || isSavingField}
               id="field-boundary-upload"
               name="field-boundary-upload"
               onChange={handleImport}
@@ -1420,6 +1441,9 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               ref={soilInputRef}
               type="file"
             />
+            {fieldLoadError ? (
+              <p className="field-map-field-warning" role="alert">{fieldLoadError}</p>
+            ) : null}
           </div>
         </>
       ) : null}
@@ -1445,9 +1469,11 @@ export function FieldMap({ selectedLayerId, onSelectField }: FieldMapProps) {
               ? `${selectedField.properties.areaHectares.toFixed(2)} ha · Field ID ${selectedField.id}`
               : fields.features.length > 0
                 ? "Click inside a field boundary to inspect it."
-                : "Add or upload a field boundary to begin."}
+                : fieldLoadError
+                  ? "Field boundaries could not be loaded."
+                  : "Add or upload a field boundary to begin."}
           </small>
-          {selectedField ? (
+          {selectedField && !fieldLoadError ? (
             <div className="field-map-selection-actions">
               <button
                 disabled={isSavingField || isEditingBoundary}

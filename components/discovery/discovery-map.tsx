@@ -5,14 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import type { DiscoveryMapProps } from "./map-contract";
 import { MapSlot } from "./map-slot";
 
+const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
 /**
  * Real Mapbox implementation of the Discovery map contract. Markers are the
  * same glass pills as the schematic map, placed at true coordinates.
- * Without NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN it falls back to the schematic
+ * Accepts the same public-token names as Field Info. Without a token it falls back to the schematic
  * MapSlot so the page keeps working.
  */
 export function DiscoveryMap(props: DiscoveryMapProps) {
-  if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
+  if (!accessToken) {
     return <MapSlot {...props} />;
   }
 
@@ -47,7 +49,6 @@ function LiveDiscoveryMap({
   }, [onHoverMarker, onSelectMarker]);
 
   useEffect(() => {
-    const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
     if (!accessToken || !containerRef.current) {
       return;
     }
