@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseSearchLocation, searchDataCenters } from "@/lib/server/data-center-search";
+import { GeminiSearchError, parseSearchLocation, searchDataCenters } from "@/lib/server/data-center-search";
 import type { FarmScopeAssessment } from "@/lib/datasets/data-centers-client";
 
 export const runtime = "nodejs";
@@ -26,7 +26,9 @@ export async function POST(request: Request) {
   try { return NextResponse.json(await entry.result, { headers: { "Cache-Control": "no-store" } }); }
   catch (error) {
     if (cache.get(key) === entry) cache.delete(key);
-    console.error("Nearby data-center search failed", error instanceof Error ? error.message : "Unknown error");
-    return NextResponse.json({ message: error instanceof Error ? error.message : "Web search is unavailable. Please retry." }, { status: 502 });
+    console.error("Nearby data-center search failed", error instanceof GeminiSearchError
+      ? { status: error.status, ...error.diagnostics }
+      : error instanceof Error ? error.message : "Unknown error");
+    return NextResponse.json({ message: error instanceof Error ? error.message : "Web search is unavailable. Please retry." }, { status: error instanceof GeminiSearchError && error.status === 429 ? 429 : 502 });
   }
 }

@@ -107,6 +107,24 @@ export function parseGroundedAssessment(payload: unknown, location: SearchLocati
   };
 }
 
+export class GeminiSearchError extends Error {
+  constructor(
+    readonly status: number,
+    readonly diagnostics: {
+      model: string;
+      providerStatus: string | null;
+      providerMessage: string | null;
+      quotaViolations: unknown[];
+      retryDelay: string | null;
+    },
+  ) {
+    super(status === 429
+      ? "Live web search is temporarily unavailable (429). Please try again later."
+      : `Gemini web search failed (${status}). Please try again later.`);
+    this.name = "GeminiSearchError";
+  }
+}
+
 export async function searchDataCenters(location: SearchLocation, apiKey: string, model = "gemini-3.8-flash", fetcher = fetch): Promise<FarmScopeAssessment> {
   const prompt = `Search the web now for operating data centers and plans to build them within ${location.radius_km} km of the supplied coordinates.
 Use the coordinates as the search center even though the parcel is fictional. Identify the nearest real municipalities first, then search municipal planning/zoning records, developer announcements and reputable local news for data centre/center, computing campus, server farm, construction, approval, application and proposed developments. Search in the region's languages when relevant.
@@ -122,6 +140,26 @@ Optional factor scores (only with specific cited evidence): {factor, score: 0-10
     body: JSON.stringify({ model, input: prompt, tools: [{ type: "google_search" }], store: false }),
     signal: AbortSignal.timeout(50_000), cache: "no-store",
   });
-  if (!response.ok) throw new Error(`Gemini web search failed (${response.status}). Check the server API key, model access, and quota.`);
+  if (!response.ok) {
+    // Preserve provider diagnostics on the server, rather than guessing that
+    // every 429 means a daily quota was exhausted. Never expose credentials.
+    const scrub = (value: unknown): string | null => typeof value === "string"
+      ? value.split(apiKey).join("[redacted]").replace(/AIza[\w-]+/g, "[redacted]").slice(0, 2000)
+      : null;
+    const body = record(await response.json().catch(() => null));
+    const providerError = record(body.error);
+    const details = list(providerError.details).map(record);
+    throw new GeminiSearchError(response.status, {
+      model,
+      providerStatus: scrub(providerError.status),
+      providerMessage: scrub(providerError.message),
+      quotaViolations: details.flatMap((detail) => list(detail.violations)).map((violation) => {
+        const item = record(violation);
+        return { quotaMetric: scrub(item.quotaMetric), quotaId: scrub(item.quotaId),
+          description: scrub(item.description), quotaValue: scrub(item.quotaValue) };
+      }),
+      retryDelay: scrub(details.find((detail) => typeof detail.retryDelay === "string")?.retryDelay),
+    });
+  }
   return parseGroundedAssessment(await response.json(), location);
 }

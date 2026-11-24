@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseGroundedAssessment, parseSearchLocation, searchDataCenters } from "./data-center-search";
+import { GeminiSearchError, parseGroundedAssessment, parseSearchLocation, searchDataCenters } from "./data-center-search";
 
 const location = parseSearchLocation({ latitude: 45.307, longitude: -76.298, province: "Ontario", is_demo_location: true });
 const url = "https://example.com/planning-record";
@@ -65,5 +65,24 @@ test("sends coordinates with the Google Search tool and server-only API header",
 });
 
 test("API failures remain retryable errors instead of no-results assessments", async () => {
-  await assert.rejects(searchDataCenters(location, "test-key", "test-model", async () => new Response("quota", { status: 429 })), /quota/);
+  await assert.rejects(searchDataCenters(location, "test-key", "test-model", async () => new Response("quota", { status: 429 })), /429/);
+});
+
+
+test("retains Google's specific 429 diagnostics server-side and redacts the API key", async () => {
+  await assert.rejects(searchDataCenters(location, "test-key", "test-model", async () => Response.json({
+    error: { status: "RESOURCE_EXHAUSTED", message: "Grounding quota unavailable for test-key",
+      details: [{ violations: [{ quotaMetric: "grounding_requests", quotaId: "SearchPerMinute", quotaValue: "0" }] },
+        { retryDelay: "30s" }] },
+  }, { status: 429 })), (error: unknown) => {
+    assert.ok(error instanceof GeminiSearchError);
+    assert.equal(error.status, 429);
+    assert.equal(error.diagnostics.model, "test-model");
+    assert.equal(error.diagnostics.providerStatus, "RESOURCE_EXHAUSTED");
+    assert.equal(error.diagnostics.retryDelay, "30s");
+    assert.equal(error.diagnostics.quotaViolations.length, 1);
+    assert.equal(error.diagnostics.providerMessage, "Grounding quota unavailable for [redacted]");
+    assert.doesNotMatch(error.message, /test-key|grounding_requests/);
+    return true;
+  });
 });
