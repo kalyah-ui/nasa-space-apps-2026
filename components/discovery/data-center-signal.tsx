@@ -92,7 +92,7 @@ export function DataCenterSignal({ listing }: { listing: DemoListing }) {
   return (
     <section aria-labelledby="data-center-signal-title" className="infrastructure-signal">
       <span className="kpi-tile-label">Nearby development</span>
-      <h3 id="data-center-signal-title">Data centers and projects</h3>
+      <h3 id="data-center-signal-title">Nearby data centers</h3>
       <p className="infrastructure-demo-note">Demo location · {SCREENING_RADIUS_KM} km screening radius</p>
       {loading && <p className="infrastructure-result-note" role="status">Loading nearby development report…</p>}
       {error && <>
